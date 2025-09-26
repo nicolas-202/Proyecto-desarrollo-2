@@ -14,15 +14,25 @@ Antes de comenzar, asegúrate de tener instalados en tu equipo:
 - Un editor de código (VSCode recomendado).
 - Sistema de gestion de base de datos **XAMPP (RECOMENDADO)**. Verificar que la versión de Mariadb sea 11.8.3 o superior
 
-## 2. **Clonar el Repositorio**
+## 2. **Configurar git y clonar el repositorio**
 
 Abre tu terminal y ejecuta:
 
 ```powershell
-git clone https://github.com/nicolas-202/Proyecto-desarrollo-2.git
-cd Proyecto-desarrollo-2
+git init
 ```
 
+configura tu nombre de usuario y correo electronico que utiliza en el github al cual se envió la solicitud de colaborador
+```powershell
+git config --global user.name "TuNombre"
+git config --global user.email "TuCorreoDeGitHub@example.com"
+```
+clonar el repositorio y descargar el proyecto
+```powershell
+git remote add origin git@github.com:nicolas-202/Proyecto-desarrollo-2.git
+git pull origin master
+cd protecto-desarrollo-2
+````
 ## 3. **Configurar y Activar el Entorno Virtual en Python**
 
 Para evitar conflictos de dependencias, crea un entorno virtual **dentro de la carpeta backend**:
@@ -78,5 +88,9 @@ npm install
 ## 9. **Verificar la Instalación**
 
 Accede a la dirección local indicada (por ejemplo, `http://localhost:8000` o `http://localhost:5713`) y verifica que la aplicación funcione.
+
+## Buenas practicas
+- Para hacer cualquier cambio en la aplicación se debera crear una nueva rama, trabajar en ella y despues hacer merge con la rama master
+- Se deben dar nombres descriptivos y claros a los commits, asi como informar de los cambios realizados
 
 
