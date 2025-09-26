@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Django
+db.sqlite3
+*.log
+
+# Entorno virtual
+venv/
+env/
+ENV/
+.venv/
+
+# Archivos de entorno
+.env
+
+# Archivos de configuración de VS Code
+.vscode/
+
+# Archivos de migraciones
+*/migrations/
+*/migrations/*.pyc
+
+# Archivos temporales
+*.swp
+*.swo
+*.bak
+
+# Archivos de compilación
+build/
+dist/
+*.egg-info/
