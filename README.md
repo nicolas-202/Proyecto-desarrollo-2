@@ -16,23 +16,12 @@ Antes de comenzar, asegúrate de tener instalados en tu equipo:
 
 ## 2. **Configurar git y clonar el repositorio**
 
-Abre tu terminal y ejecuta:
+primero debes hacer un fork del repositorio, desde allí clonas el repositorio en tu dispositivo usando el comando 
 
 ```powershell
-git init
+git clone https://github.com/YOUR-USERNAME/YOUR-REPOSITORY
 ```
 
-configura tu nombre de usuario y correo electronico que utiliza en el github al cual se envió la solicitud de colaborador
-```powershell
-git config --global user.name "TuNombre"
-git config --global user.email "TuCorreoDeGitHub@example.com"
-```
-clonar el repositorio y descargar el proyecto
-```powershell
-git remote add origin git@github.com:nicolas-202/Proyecto-desarrollo-2.git
-git pull origin master
-cd protecto-desarrollo-2
-````
 ## 3. **Configurar y Activar el Entorno Virtual en Python**
 
 Para evitar conflictos de dependencias, crea un entorno virtual **dentro de la carpeta backend**:
