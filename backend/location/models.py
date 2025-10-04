@@ -8,3 +8,22 @@ class Country(models.Model):
 
     def __str__(self):
         return self.country_name
+
+class State(models.Model):
+    state_name = models.CharField(max_length=50)
+    state_code = models.CharField(max_length=4)
+    state_description = models.TextField(blank=True, null=True)
+    state_country = models.ForeignKey(Country, on_delete=models.RESTRICT)
+    state_state = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['state_name', 'state_country'],
+                name='unique_state_per_country'
+            )
+        ]
+
+
+    def __str__(self):
+        return self.state_name
