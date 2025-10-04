@@ -1,8 +1,8 @@
 from django.shortcuts import render
 from rest_framework import viewsets
-from .serializer import PaisSerializer
-from .models import Pais
+from .serializer import CountrySerializer
+from .models import Country
 # Create your views here.
-class PaisViewSet(viewsets.ModelViewSet):
-    serializer_class = PaisSerializer
-    queryset = Pais.objects.all()
+class CountryViewSet(viewsets.ModelViewSet):
+    serializer_class = CountrySerializer
+    queryset = Country.objects.all()
