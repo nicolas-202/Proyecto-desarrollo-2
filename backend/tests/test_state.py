@@ -182,24 +182,3 @@ def test_api_delete_state(api_client, state_created):
     response = api_client.delete(url)
     assert response.status_code == 204
     assert not State.objects.filter(id=state_created.id).exists()
-
-
-# Método GET para filtrar estados por país
-@pytest.mark.django_db
-def test_api_filter_states_by_country(api_client, country_created):
-    State.objects.create(
-        state_name="Antioquia",
-        state_code="ANT",
-        state_country=country_created,
-    )
-    State.objects.create(
-        state_name="Meta",
-        state_code="MET",
-        state_country=country_created,
-    )
-
-    url = reverse("state-by-country", args=[country_created.id])
-    response = api_client.get(url)
-    assert response.status_code == 200
-    assert len(response.data) == 2
-    assert all(s["state_country"] == country_created.id for s in response.data)

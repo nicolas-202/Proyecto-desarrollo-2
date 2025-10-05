@@ -8,7 +8,6 @@ class CountrySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class StateSerializer(serializers.ModelSerializer):
-    country_name = serializers.ReadOnlyField(source='state_country.pais_name')
     class Meta:
         model = State
         fields = '__all__'
