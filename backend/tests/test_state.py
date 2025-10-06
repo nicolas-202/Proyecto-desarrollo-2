@@ -23,7 +23,7 @@ def state_created(country_created):
         state_code="ANT",
         state_description="Departamento del noroeste de Colombia",
         state_country=country_created,
-        state_state=True,
+        state_is_active=True,
     )
 
 # -------------------------------------------------------
@@ -38,11 +38,11 @@ def test_state_creation(country_created):
         state_code="CUN",
         state_description="Departamento central",
         state_country=country_created,
-        state_state=True,
+        state_is_active=True,
     )
     assert state.state_name == "Cundinamarca"
     assert state.state_country == country_created
-    assert state.state_state is True
+    assert state.state_is_active is True
 
 
 # Método __str__
@@ -132,7 +132,7 @@ def test_api_create_state(api_client, country_created):
         "state_code": "QUI",
         "state_description": "Departamento cafetero",
         "state_country": country_created.id,
-        "state_state": True,
+        "state_is_active": True,
     }
     response = api_client.post(url, data, format="json")
     assert response.status_code == 201
@@ -166,13 +166,13 @@ def test_api_update_state(api_client, state_created):
         "state_code": "ANT",
         "state_description": "Descripción actualizada",
         "state_country": state_created.state_country.id,
-        "state_state": False,
+        "state_is_active": False,
     }
     response = api_client.put(url, data, format="json")
     assert response.status_code == 200
     state_created.refresh_from_db()
     assert state_created.state_name == "Antioquia Actualizado"
-    assert state_created.state_state is False
+    assert state_created.state_is_active is False
 
 
 # Método DELETE para eliminar un estado

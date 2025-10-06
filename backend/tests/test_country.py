@@ -14,7 +14,7 @@ def test_country_creation():
     country = Country.objects.create(country_name="Brazil", country_code="BR")
     assert country.country_name == "Brazil"
     assert country.country_code == "BR"
-    assert country.country_state is True
+    assert country.country_is_active is True
 
 # Método __str__
 @pytest.mark.django_db
@@ -83,7 +83,7 @@ def test_api_create_country(api_client):
         "country_name": "Colombia",
         "country_code": "CO",
         "country_description": "South American country",
-        "country_state": True,
+        "country_is_active": True,
     }
     response = api_client.post(url, data, format="json")
     assert response.status_code == 201
@@ -116,13 +116,13 @@ def test_api_update_country(api_client, country_created):
         "country_name": "Brazil Updated",
         "country_code": "BR",
         "country_description": "Updated description",
-        "country_state": False,
+        "country_is_active": False,
     }
     response = api_client.put(url, data, format="json")
     assert response.status_code == 200
     country_created.refresh_from_db()
     assert country_created.country_name == "Brazil Updated"
-    assert country_created.country_state is False
+    assert country_created.country_is_active is False
 
 
 # Método DELETE para eliminar un país
