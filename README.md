@@ -1,3 +1,7 @@
+Dirección del Draw.io que contiene la documentación:
+https://drive.google.com/file/d/1jIydWksU_XRTRXGKeYx1Ogy5hUK8vNoH/view?usp=sharing
+
+
 # Guía de Implementación para Colaboradores
 Proyecto: Proyecto-desarrollo-2  
 Descripción: Proyecto realizado para la clase de desarrollo de software 2  

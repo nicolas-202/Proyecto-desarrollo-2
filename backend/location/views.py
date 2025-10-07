@@ -13,12 +13,12 @@ class StateViewSet(viewsets.ModelViewSet):
     queryset = State.objects.all()
     def get_queryset(self):
         queryset = super().get_queryset()
-        state_id = self.request.query_params.get('country')
+        country_id = self.request.query_params.get('country')
         if country_id:
             try:
                 Country.objects.get(id=country_id)
-                # Filter by state_country (ForeignKey field)
-                queryset = queryset.filter(stat_country_id=country_id)
+                # Filtrar estado por país
+                queryset = queryset.filter(state_country_id=country_id)
             except ValueError:
                 raise ValidationError({"state": "Invalid country ID"})
         return queryset
@@ -33,7 +33,7 @@ class CityViewSet(viewsets.ModelViewSet):
         if state_id:
             try:
                 State.objects.get(id=state_id)
-                # Filter by city_state (ForeignKey field)
+                # Filtrar ciudad por estado
                 queryset = queryset.filter(city_state_id=state_id)
             except ValueError:
                 raise ValidationError({"state": "Invalid state ID"})

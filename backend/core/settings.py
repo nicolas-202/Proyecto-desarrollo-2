@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'location',
+    'userInfo',
 ]
 
 MIDDLEWARE = [
