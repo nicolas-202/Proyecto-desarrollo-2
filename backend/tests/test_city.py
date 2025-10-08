@@ -191,3 +191,46 @@ def test_api_delete_city(api_client, city_created):
     response = api_client.delete(url)
     assert response.status_code == 204
     assert not City.objects.filter(id=city_created.id).exists()
+
+# --------------------------------------------------------
+# PRUEBAS DE FILTRADO POR DEPARTAMENTO EN LA API STATE
+# --------------------------------------------------------
+
+@pytest.mark.django_db
+def test_api_filter_city_by_state(api_client):
+
+    country1 = Country.objects.create(country_name="Colombia", country_code="CO")
+
+    state1 = State.objects.create(
+        state_name="Antioquia", state_code="ANT", state_country=country1
+    )
+    state2 = State.objects.create(
+        state_name="Cundinamarca", state_code="CUN", state_country=country1
+    )
+    
+    city1 = City.objects.create(
+        city_name="Bogotá", city_code="BOG", city_state=state2
+    )
+    city2 = City.objects.create(
+        city_name="Medellín", city_code="MED", city_state=state1    
+    )
+
+
+    url = reverse("city-list")
+    response = api_client.get(url, {"state": state1.id})
+    assert response.status_code == 200
+    data = response.data
+
+    # Solo deben aparecer los estados de Colombia
+    returned_names = [item["city_name"] for item in data]
+    assert "Medellín" in returned_names
+    assert "Bogotá" not in returned_names
+
+
+@pytest.mark.django_db
+def test_api_filter_cities_with_invalid_state(api_client):
+    url = reverse("city-list")
+    response = api_client.get(url, {"state": "invalid_id"})
+
+    # Dependiendo de tu implementación, puede devolver 400 o 404
+    assert response.status_code in [400, 404]

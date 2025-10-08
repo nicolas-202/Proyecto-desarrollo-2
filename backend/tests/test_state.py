@@ -182,3 +182,44 @@ def test_api_delete_state(api_client, state_created):
     response = api_client.delete(url)
     assert response.status_code == 204
     assert not State.objects.filter(id=state_created.id).exists()
+
+# --------------------------------------------------------
+# PRUEBAS DE FILTRADO POR PAÍS EN LA API STATE
+# --------------------------------------------------------
+
+@pytest.mark.django_db
+def test_api_filter_states_by_country(api_client):
+    
+    country1 = Country.objects.create(country_name="Colombia", country_code="CO")
+    country2 = Country.objects.create(country_name="Argentina", country_code="AR")
+
+    state1 = State.objects.create(
+        state_name="Antioquia", state_code="ANT", state_country=country1
+    )
+    state2 = State.objects.create(
+        state_name="Cundinamarca", state_code="CUN", state_country=country1
+    )
+    state3 = State.objects.create(
+        state_name="Buenos Aires", state_code="BUE", state_country=country2
+    )
+
+    url = reverse("state-list")
+    response = api_client.get(url, {"country": country1.id})
+    assert response.status_code == 200
+    data = response.data
+
+    # Solo deben aparecer los estados de Colombia
+    returned_names = [item["state_name"] for item in data]
+    assert "Antioquia" in returned_names
+    assert "Cundinamarca" in returned_names
+    assert "Buenos Aires" not in returned_names
+
+
+@pytest.mark.django_db
+def test_api_filter_states_with_invalid_country(api_client):
+    """Debe devolver un error si el parámetro 'country' no es válido."""
+    url = reverse("state-list")
+    response = api_client.get(url, {"country": "invalid_id"})
+
+    # Dependiendo de tu implementación, puede devolver 400 o 404
+    assert response.status_code in [400, 404]
