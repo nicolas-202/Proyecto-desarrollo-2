@@ -18,3 +18,12 @@ class Gender(models.Model):
 
     def __str__(self):
         return self.gender_name
+
+class PaymentMethodType(models.Model):
+    payment_method_type_name = models.CharField(max_length=50, unique=True)
+    payment_method_type_code = models.CharField(max_length=4, unique=True)
+    payment_method_type_description= models.TextField(blank=True, null=True)
+    payment_method_type_is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.payment_method_type_name
