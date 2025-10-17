@@ -60,6 +60,26 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+}
+
+# Configuración de JWT
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),  # Token expira en 1 hora
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),  # Refresh token expira en 7 días
+    'ROTATE_REFRESH_TOKENS': True,  # Genera nuevo refresh token al refrescar
+    'BLACKLIST_AFTER_ROTATION': True,  # Invalida el refresh token viejo
+    'AUTH_HEADER_TYPES': ('Bearer',),  # Tipo de header: "Bearer <token>"
+}
+
 ROOT_URLCONF = 'core.urls'
 
 TEMPLATES = [

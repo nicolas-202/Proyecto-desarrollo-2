@@ -3,9 +3,9 @@ from rest_framework import routers
 from .views import DocumentTypeViewSet, GenderViewSet, PaymentMethodTypeViewSet
 
 router = routers.DefaultRouter()
-router.register(r"documentType", DocumentTypeViewSet, basename="documentType")
-router.register(r"gender", GenderViewSet, basename="gender")
-router.register(r"paymentMethodType", PaymentMethodTypeViewSet, basename="paymentMethodType")
+router.register(r"document-types", DocumentTypeViewSet, basename="document-type")
+router.register(r"genders", GenderViewSet, basename="gender")
+router.register(r"payment-method-types", PaymentMethodTypeViewSet, basename="payment-method-type")
 urlpatterns = [
-    path("api/v1/", include(router.urls)),
+    path("", include(router.urls)),
 ]

@@ -3,13 +3,18 @@ from rest_framework import viewsets
 from .serializer import CountrySerializer, StateSerializer, CitySerializer
 from .models import Country, State, City
 from rest_framework.exceptions import ValidationError
+from permissions.permissions import IsAdminOrReadOnly
 
+class BaseUserInfoViewSet(viewsets.ModelViewSet):
+    def get_permissions(self):
+        # Aplicar IsAdminOrReadOnly para todas las acciones
+        return [IsAdminOrReadOnly()]
 
-class CountryViewSet(viewsets.ModelViewSet):
+class CountryViewSet(BaseUserInfoViewSet):
     serializer_class = CountrySerializer
     queryset = Country.objects.all()
 
-class StateViewSet(viewsets.ModelViewSet):
+class StateViewSet(BaseUserInfoViewSet):
     serializer_class = StateSerializer
     queryset = State.objects.all()
 
@@ -30,7 +35,7 @@ class StateViewSet(viewsets.ModelViewSet):
                 raise ValidationError({"country": "Country not found"})
         return queryset
 
-class CityViewSet(viewsets.ModelViewSet):
+class CityViewSet(BaseUserInfoViewSet):
     serializer_class = CitySerializer
     queryset = City.objects.all()
     

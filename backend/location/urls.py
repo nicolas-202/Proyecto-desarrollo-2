@@ -3,9 +3,9 @@ from rest_framework import routers
 from .views import CountryViewSet, StateViewSet, CityViewSet
 
 router = routers.DefaultRouter()
-router.register(r"state", StateViewSet, basename="state")
-router.register(r"country", CountryViewSet, basename="country")
-router.register(r"city", CityViewSet, basename="city")
+router.register(r"states", StateViewSet, basename="state")
+router.register(r"countries", CountryViewSet, basename="country")
+router.register(r"cities", CityViewSet, basename="city")
 urlpatterns = [
-    path("api/v1/", include(router.urls)),
+    path("", include(router.urls)),
 ]
