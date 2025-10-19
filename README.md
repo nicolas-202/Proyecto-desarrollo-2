@@ -86,4 +86,16 @@ Accede a la dirección local indicada (por ejemplo, `http://localhost:8000` o `h
 - Para hacer cualquier cambio en la aplicación se debera crear una nueva rama, trabajar en ella y despues hacer merge con la rama master
 - Se deben dar nombres descriptivos y claros a los commits, asi como informar de los cambios realizados
 
+# Migraciones
 
+- Para crear migraciones se debe ejecutar el comando 
+
+  ```powershell
+  python manage.py makemigrations
+  ```
+
+- Para ejecutar migraciones se debe ejecutar el comando 
+
+  ```powershell
+  python manage.py migrate
+  ```
