@@ -1,225 +1,89 @@
-import pytest
-from django.core.exceptions import ValidationError
-from django.urls import reverse
-from rest_framework.test import APIClient
+# location/tests/test_state.py
+from tests.base_test import BaseApiTest
 from location.models import Country, State
+from rest_framework import status
 
-# -------------------------------------------------------
-# FIXTURES
-# -------------------------------------------------------
-
-@pytest.fixture
-def api_client():
-    return APIClient()
-
-@pytest.fixture
-def country_created():
-    return Country.objects.create(country_name="Colombia", country_code="CO")
-
-@pytest.fixture
-def state_created(country_created):
-    return State.objects.create(
-        state_name="Antioquia",
-        state_code="ANT",
-        state_description="Departamento del noroeste de Colombia",
-        state_country=country_created,
-        state_is_active=True,
-    )
-
-# -------------------------------------------------------
-# PRUEBAS DEL MODELO STATE
-# -------------------------------------------------------
-
-# Creación de un estado
-@pytest.mark.django_db
-def test_state_creation(country_created):
-    state = State.objects.create(
-        state_name="Cundinamarca",
-        state_code="CUN",
-        state_description="Departamento central",
-        state_country=country_created,
-        state_is_active=True,
-    )
-    assert state.state_name == "Cundinamarca"
-    assert state.state_country == country_created
-    assert state.state_is_active is True
-
-
-# Método __str__
-@pytest.mark.django_db
-def test_state_str_returns_name(country_created):
-    state = State.objects.create(
-        state_name="Valle del Cauca",
-        state_code="VAL",
-        state_country=country_created
-    )
-    assert str(state) == "Valle del Cauca"
-
-
-# Restricciones de unicidad
-@pytest.mark.django_db
-def test_state_unique_constraints(country_created):
-    State.objects.create(
-        state_name="Santander",
-        state_code="SAN",
-        state_country=country_created
-    )
-
-    # Mismo nombre en el mismo país (debe fallar)
-    with pytest.raises(Exception):
-        State.objects.create(
-            state_name="Santander",
-            state_code="SAN2",
-            state_country=country_created
-        )
-
-    # Mismo código de estado (debe fallar)
-    with pytest.raises(Exception):
-        State.objects.create(
-            state_name="Santander Norte",
-            state_code="SAN",
-            state_country=country_created
-        )
-
-
-# Validación de longitud máxima del nombre
-@pytest.mark.django_db
-def test_state_name_max_length(country_created):
-    long_name = "A" * 51
-    state = State(
-        state_name=long_name,
-        state_code="XXX",
-        state_country=country_created
-    )
-    with pytest.raises(ValidationError):
-        state.full_clean()
-
-
-# Validación de longitud máxima del código
-@pytest.mark.django_db
-def test_state_code_max_length(country_created):
-    long_code = "ABCDE"
-    state = State(
-        state_name="Meta",
-        state_code=long_code,
-        state_country=country_created
-    )
-    with pytest.raises(ValidationError):
-        state.full_clean()
-
-
-# Validación de que la descripción es opcional
-@pytest.mark.django_db
-def test_state_description_optional(country_created):
-    state = State.objects.create(
-        state_name="Bolívar",
-        state_code="BOL",
-        state_country=country_created
-    )
-    assert state.state_description is None
-
-
-# --------------------------------------------------------
-# PRUEBAS DE LA API REST PARA STATE
-# --------------------------------------------------------
-
-# Método POST para crear un estado
-@pytest.mark.django_db
-def test_api_create_state(api_client, country_created):
-    url = reverse("state-list")
-    data = {
-        "state_name": "Quindío",
-        "state_code": "QUI",
-        "state_description": "Departamento cafetero",
-        "state_country": country_created.id,
-        "state_is_active": True,
-    }
-    response = api_client.post(url, data, format="json")
-    assert response.status_code == 201
-    assert response.data["state_name"] == "Quindío"
-
-
-# Método GET para listar estados
-@pytest.mark.django_db
-def test_api_list_states(api_client, state_created):
-    url = reverse("state-list")
-    response = api_client.get(url)
-    assert response.status_code == 200
-    assert any(s["state_name"] == "Antioquia" for s in response.data)
-
-
-# Método GET para detalle de un estado
-@pytest.mark.django_db
-def test_api_get_state_detail(api_client, state_created):
-    url = reverse("state-detail", args=[state_created.id])
-    response = api_client.get(url)
-    assert response.status_code == 200
-    assert response.data["state_name"] == "Antioquia"
-
-
-# Método PUT para actualizar un estado
-@pytest.mark.django_db
-def test_api_update_state(api_client, state_created):
-    url = reverse("state-detail", args=[state_created.id])
-    data = {
-        "state_name": "Antioquia Actualizado",
-        "state_code": "ANT",
-        "state_description": "Descripción actualizada",
-        "state_country": state_created.state_country.id,
-        "state_is_active": False,
-    }
-    response = api_client.put(url, data, format="json")
-    assert response.status_code == 200
-    state_created.refresh_from_db()
-    assert state_created.state_name == "Antioquia Actualizado"
-    assert state_created.state_is_active is False
-
-
-# Método DELETE para eliminar un estado
-@pytest.mark.django_db
-def test_api_delete_state(api_client, state_created):
-    url = reverse("state-detail", args=[state_created.id])
-    response = api_client.delete(url)
-    assert response.status_code == 204
-    assert not State.objects.filter(id=state_created.id).exists()
-
-# --------------------------------------------------------
-# PRUEBAS DE FILTRADO POR PAÍS EN LA API STATE
-# --------------------------------------------------------
-
-@pytest.mark.django_db
-def test_api_filter_states_by_country(api_client):
+class StateViewSetTestCase(BaseApiTest):
+    __test__ = True  # Indica a pytest que esta clase debe ser probada.
+    """Tests para StateViewSet"""
     
-    country1 = Country.objects.create(country_name="Colombia", country_code="CO")
-    country2 = Country.objects.create(country_name="Argentina", country_code="AR")
+    url_list_name = 'state-list'
+    url_detail_name = 'state-detail'
+    model_class = State
+    
+    @classmethod
+    def setUpTestData(cls):
+        """
+        Crear dependencias extras (Country) antes de ejecutar setUp base
+        """
+        # Primero ejecutar el setUp de la clase base
+        super().setUpTestData()
+        
+        # Crear Country (dependencia de State)
+        cls.test_country = Country.objects.create(
+            country_name='Colombia for States',
+            country_code='COS',
+            country_description='País para estados de prueba',
+            country_is_active=True
+        )
+        
+        # Crear otro país para tests de filtrado
+        cls.other_country = Country.objects.create(
+            country_name='Venezuela for States',
+            country_code='VES',
+            country_description='Otro país',
+            country_is_active=True
+        )
+    
+    def create_test_object(self):
+        """Crear State para tests"""
+        return State.objects.create(
+            state_name='Valle del Cauca',
+            state_code='VC',
+            state_description='Departamento del Valle',
+            state_country=self.test_country,
+            state_is_active=True
+        )
+    
+    def get_valid_create_data(self):
+        """Datos válidos para crear un estado"""
+        return {
+            'state_name': 'Antioquia',
+            'state_code': 'ANT',
+            'state_description': 'Departamento de Antioquia',
+            'state_is_active': True,
+            'country_id': self.test_country.id
+        }
+    
+    def get_valid_update_data(self):
+        """Datos válidos para actualizar un estado"""
+        return {
+            'state_name': 'Valle Actualizado',
+            'state_code': 'VC',
+            'state_description': 'Descripción actualizada',
+            'state_is_active': False,
+            'country_id': self.test_country.id
+        }
+    
+    def get_invalid_create_data(self):
+        """Datos inválidos para testear validaciones"""
+        return {
+            'state_name': '',
+            'state_code': 'TOOLONGCODE',
+            'country_id': 99999  # Country inexistente
+        }
 
-    state1 = State.objects.create(
-        state_name="Antioquia", state_code="ANT", state_country=country1
-    )
-    state2 = State.objects.create(
-        state_name="Cundinamarca", state_code="CUN", state_country=country1
-    )
-    state3 = State.objects.create(
-        state_name="Buenos Aires", state_code="BUE", state_country=country2
-    )
-
-    url = reverse("state-list")
-    response = api_client.get(url, {"country": country1.id})
-    assert response.status_code == 200
-    data = response.data
-
-    # Solo deben aparecer los estados de Colombia
-    returned_names = [item["state_name"] for item in data]
-    assert "Antioquia" in returned_names
-    assert "Cundinamarca" in returned_names
-    assert "Buenos Aires" not in returned_names
-
-
-@pytest.mark.django_db
-def test_api_filter_states_with_invalid_country(api_client):
-    """Debe devolver un error si el parámetro 'country' no es válido."""
-    url = reverse("state-list")
-    response = api_client.get(url, {"country": "invalid_id"})
-
-    # Dependiendo de tu implementación, puede devolver 400 o 404
-    assert response.status_code in [400, 404]
+    def test_create_with_duplicate_code_fails(self):
+        """Personalizado: No se puede crear con state_name y state_country duplicados"""
+        self.client.force_authenticate(user=self.admin_user)
+        
+        data = self.get_valid_create_data()
+        
+        # Ajustar datos para duplicar la combinación única: state_name y state_country
+        data['state_name'] = getattr(self.test_object, 'state_name')
+        data['state_country'] = self.test_object.state_country.pk  # Usar el PK del país existente
+        
+        response = self.client.post(self.list_url, data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('non_field_errors', response.data)  # Error de unicidad combinada

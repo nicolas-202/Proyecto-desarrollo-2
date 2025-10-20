@@ -4,7 +4,7 @@ from django.utils import timezone
 # Create your models here.
 
 class CustomUserManager(BaseUserManager):
-    def create(self, email, password=None, **extra_fields):
+    def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError('El Email es obligatorio')
         if not password:
@@ -86,7 +86,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Configuración de autenticación
     USERNAME_FIELD = 'email'  # El campo para login
     # CORRECCIÓN: Quitadas las claves foráneas de REQUIRED_FIELDS
-    REQUIRED_FIELDS = ['first_name', 'last_name', 'city', 'gender', 'document_type']
+    REQUIRED_FIELDS = ['first_name', 'last_name']
     
     def __str__(self):
         return self.email
