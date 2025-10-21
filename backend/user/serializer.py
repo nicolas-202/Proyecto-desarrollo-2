@@ -99,16 +99,16 @@ class UserProfileSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('id','email','document_type', 'document_number')
 
-        def get_full_name(self, obj):
-            return obj.get_full_name()
+    def get_full_name(self, obj):
+        return obj.get_full_name()
         
-        def to_representation(self, instance):
-            representation = super().to_representation(instance)
-            representation['city']= CitySerializer(instance.city).data
-            representation['gender']= GenderSerializer(instance.gender).data
-            representation['document_type']= DocumentTypeSerializer(instance.document_type).data 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['city']= CitySerializer(instance.city).data
+        representation['gender']= GenderSerializer(instance.gender).data
+        representation['document_type']= DocumentTypeSerializer(instance.document_type).data 
 
-            return representation
+        return representation
 
 #Serializador para actualizar información del perfil de usuario
 class UserUpdateSerializer(serializers.ModelSerializer):
@@ -119,10 +119,10 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             'phone_number', 'address', 'city', 'gender'
         )
 
-        def validate_phone_number(self, value):
-            if value and len(value) != 10:
-                raise serializers.ValidationError("El número de teléfono debe tener 10 digitos.")
-            return value
+    def validate_phone_number(self, value):
+        if value and len(value) != 10:
+            raise serializers.ValidationError("El número de teléfono debe tener 10 digitos.")
+        return value
         
 
 #Serializador para que el admin pueda actualizar usuarios, tambien es usado para listar usuarios
