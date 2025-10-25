@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 # Create your models here.
 
@@ -80,6 +81,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=100,
         blank=True,
         verbose_name='Dirección'
+    )
+    rating = models.FloatField(
+        null=True, 
+        blank=True, 
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text="Promedio de calificaciones recibidas"
     )
     
     objects = CustomUserManager()
