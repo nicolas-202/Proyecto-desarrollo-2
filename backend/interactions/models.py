@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.exceptions import ValidationError
 from user.models import User
 
 class Interaction(models.Model):
@@ -13,18 +14,14 @@ class Interaction(models.Model):
     class Meta:
         verbose_name = 'Interacción'
         verbose_name_plural = 'Interacciones'
-        ordering = ['-interaction_created_at']  # Más recientes primero
+        ordering = ['-interaction_created_at']
         
         # Constraint: Un usuario solo puede calificar a otro usuario UNA vez
         constraints = [
             models.UniqueConstraint(
                 fields=['interaction_source_user', 'interaction_target_user'],
-                name='unique_interaction_per_user_pair'
-            ),
-            # Constraint: Un usuario no puede calificarse a sí mismo
-            models.CheckConstraint(
-                condition=~models.Q(interaction_source_user=models.F('interaction_target_user')),
-                name='cannot_rate_self'
+                condition=models.Q(Interaction_is_active=True),
+                name='unique_active_interaction'
             )
         ]
         
@@ -40,12 +37,19 @@ class Interaction(models.Model):
     
     def clean(self):
         """
-        Validación adicional: un usuario no puede calificarse a sí mismo
+        Validar que no exista una calificación activa previa
         """
-        from django.core.exceptions import ValidationError
-        
-        if self.interaction_source_user == self.interaction_target_user:
-            raise ValidationError('Un usuario no puede calificarse a sí mismo.')
+        if not self.pk:  # Solo para nuevas interacciones
+            existing_interaction = Interaction.objects.filter(
+                interaction_source_user=self.interaction_source_user,
+                interaction_target_user=self.interaction_target_user,
+                Interaction_is_active=True
+            ).exists()
+            
+            if existing_interaction:
+                raise ValidationError(
+                    'Ya has calificado a este usuario. Debes desactivar la calificación anterior antes de crear una nueva.'
+                )
     
     def save(self, *args, **kwargs):
         """
@@ -53,3 +57,14 @@ class Interaction(models.Model):
         """
         self.clean()
         super().save(*args, **kwargs)
+
+    @classmethod
+    def can_rate(cls, source_user, target_user):
+        """
+        Verifica si un usuario puede calificar a otro
+        """
+        return not cls.objects.filter(
+            interaction_source_user=source_user,
+            interaction_target_user=target_user,
+            Interaction_is_active=True
+        ).exists()
