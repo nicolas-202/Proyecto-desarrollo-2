@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'location',
     'userInfo',
     'user',
+    'interactions',
 ]
 
 AUTH_USER_MODEL = 'user.User'

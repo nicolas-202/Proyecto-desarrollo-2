@@ -27,4 +27,5 @@ urlpatterns = [
     path('api/v1/auth/', include('user.urls')),
     path('api/v1/location/', include('location.urls')),
     path('api/v1/user-info/', include('userInfo.urls')),
+    path('api/v1/interactions/', include('interactions.urls')),
 ]

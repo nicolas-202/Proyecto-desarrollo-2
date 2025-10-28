@@ -22,27 +22,28 @@ class RegisterUserSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, data):
+        # Validar que las contraseñas coincidan
         password = data.get('password')
         confirm_password = data.get('confirm_password')
-
         if password != confirm_password:
             raise serializers.ValidationError("Las contraseñas no coinciden.")
+
+        # Verificar si el email pertenece a un usuario inactivo
+        email = data.get('email')
+        if email and User.objects.filter(email=email, is_active=False).exists():
+            raise serializers.ValidationError(
+                "Esta cuenta está desactivada. Por favor, contacta al soporte para reactivar tu cuenta."
+            )
+
+        # Verificar si el documento pertenece a un usuario inactivo
+        document_number = data.get('document_number')
+        if document_number and User.objects.filter(document_number=document_number, is_active=False).exists():
+            raise serializers.ValidationError(
+                "Este número de documento pertenece a una cuenta desactivada. Por favor, contacta al soporte para reactivar tu cuenta."
+            )
+
         return data
     
-        # Verificar si el email o document_number pertenecen a un usuario inactivo
-        email = data.get('email')
-        document_number = data.get('document_number')
-        if email:
-            inactive_user = User.objects.filter(email=email, is_active=False).first()
-            if inactive_user:
-                raise serializers.ValidationError("Esta cuenta está desactivada. Por favor, contacta al soporte para reactivar tu cuenta.")
-        if document_number:
-            inactive_user = User.objects.filter(document_number=document_number, is_active=False).first()
-            if inactive_user:
-                raise serializers.ValidationError("Este número de documento pertenece a una cuenta desactivada. Por favor, contacta al soporte para reactivar tu cuenta.")
-
-        return data
-
     def validate_phone_number(self, value):
         if value:
             if len(value) != 10:
