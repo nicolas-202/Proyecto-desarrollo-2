@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'userInfo',
     'user',
     'interactions',
+    'raffleInfo',
 ]
 
 AUTH_USER_MODEL = 'user.User'

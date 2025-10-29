@@ -4,8 +4,7 @@ from django.shortcuts import render
 from django.shortcuts import render
 from rest_framework import viewsets
 from .serializer import  PrizeTypeSerializer, StateRaffleSerializer
-from .models import prizetype
-from .models import  staterife
+from .models import PrizeType, StateRaffle
 from permissions.permissions import IsAdminOrReadOnly
 
 class BaseraflleinfoViewSet(viewsets.ModelViewSet):
@@ -16,12 +15,12 @@ class BaseraflleinfoViewSet(viewsets.ModelViewSet):
 
 class PrizeTypeViewSet(BaseraflleinfoViewSet):
     serializer_class = PrizeTypeSerializer
-    queryset = prizetype.objects.all()
+    queryset = PrizeType.objects.all()
 
 
 class StateRaffleViewSet(BaseraflleinfoViewSet):
     serializer_class = StateRaffleSerializer
-    queryset = staterife.objects.all()
+    queryset = StateRaffle.objects.all()
 
 
 
