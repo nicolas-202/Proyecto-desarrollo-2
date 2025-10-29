@@ -1,11 +1,11 @@
 from django.urls import path, include
 from rest_framework import routers
-from .views import PrizeTypeSerializer, StateRaffleSerializer
+from .views import PrizeTypeViewSet, StateRaffleViewSet
 
 
 router = routers.DefaultRouter()
-router.register(r"prizetype", PrizeTypeSerializer, basename="prize-type")
-router.register(r"staterife", StateRaffleSerializer, basename="state-raffle")
+router.register(r"prizetype", PrizeTypeViewSet, basename="prize-type")
+router.register(r"stateraffle", StateRaffleViewSet, basename="state-raffle")
 urlpatterns = [
     path("", include(router.urls)),
 ]

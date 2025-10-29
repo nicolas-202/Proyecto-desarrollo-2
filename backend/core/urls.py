@@ -28,4 +28,5 @@ urlpatterns = [
     path('api/v1/location/', include('location.urls')),
     path('api/v1/user-info/', include('userInfo.urls')),
     path('api/v1/interactions/', include('interactions.urls')),
+    path('api/v1/raffle-info/', include('raflleInfo.urls')),
 ]
