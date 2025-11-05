@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import (RegisterUserViewSet, UserProfileViewSet, UserUpdateViewSet, AdminListViewSet, 
-                    AdminUpdateViewSet, TokenObtainPairView, ChangePasswordViewSet, DeleteAccountViewSet)
+from .views import (RegisterUserViewSet, UserProfileViewSet, UserUpdateViewSet, AdminListViewSet,
+                    UserBasicListViewSet, AdminUpdateViewSet, TokenObtainPairView, ChangePasswordViewSet, DeleteAccountViewSet)
 
 
 urlpatterns = [
@@ -14,4 +14,5 @@ urlpatterns = [
     path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('change-password/', ChangePasswordViewSet.as_view(), name='change_password'),
     path('delete-account/', DeleteAccountViewSet.as_view(), name='delete_account'),
+    path('list/', UserBasicListViewSet.as_view(), name='user_basic_list'),  # Nueva URL pública
 ]

@@ -3,7 +3,7 @@ from rest_framework import generics, status, filters
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .models import User
-from .serializer import (RegisterUserSerializer, UserProfileSerializer, UserUpdateSerializer,
+from .serializer import (RegisterUserSerializer, UserProfileSerializer, UserUpdateSerializer, UserBasicSerializer,
                         AdminUpdateSerializer, CustomTokenObtainPairSerializer, ChangePasswordSerializer, DeleteAccountSerializer)
 from permissions.permissions import IsAdminUser, IsNotAdminUser, IsNotAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -29,6 +29,30 @@ class RegisterUserViewSet(generics.CreateAPIView):
                         headers=headers
         )
 
+# Vista pública para listar información básica de usuarios
+class UserBasicListViewSet(generics.ListAPIView):
+    """
+    Vista pública para listar información básica de usuarios
+    - Acceso sin autenticación
+    - Solo información no sensible
+    - Útil para mostrar participantes en rifas, etc.
+    """
+    queryset = User.objects.filter(is_active=True)  # Solo usuarios activos
+    serializer_class = UserBasicSerializer
+    permission_classes = [AllowAny]  # Acceso público
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['first_name', 'last_name', 'email']  # Búsqueda por nombre o email
+
+    def get_queryset(self):
+        """
+        Filtrar usuarios activos y ordenar por nombre
+        """
+        return User.objects.filter(
+            is_active=True
+        ).select_related(
+            # Optimización: no necesitamos relaciones para info básica
+        ).order_by('first_name', 'last_name')
+    
 #Vista para obtener el perfil del usuario autenticado
 class UserProfileViewSet(generics.RetrieveAPIView):
     serializer_class = UserProfileSerializer

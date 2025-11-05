@@ -82,7 +82,53 @@ class UserAPITestCase(APITestCase):
         """Refrescar usuarios antes de cada test"""
         self.user_regular.refresh_from_db()
         self.admin_user.refresh_from_db()
+
+    # ============================================
+    # TESTS DE LISTADO PÚBLICO DE USUARIOS
+    # ============================================
     
+    def test_user_basic_list_public_access(self):
+        """Cualquiera puede acceder al listado público de usuarios básicos"""
+        url = reverse('user_basic_list')
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(response.data, list)
+        self.assertEqual(len(response.data), 2)  # admin_user + user_regular
+    
+    def test_user_basic_list_content_safe(self):
+        """El listado público solo contiene información no sensible"""
+        url = reverse('user_basic_list')
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user_data = response.data[0]
+        
+        # Verificar que contiene campos básicos
+        self.assertIn('id', user_data)
+        self.assertIn('email', user_data)
+        self.assertIn('first_name', user_data)
+        self.assertIn('full_name', user_data)
+        
+        # Verificar que NO contiene información sensible
+        self.assertNotIn('document_number', user_data)
+        self.assertNotIn('is_admin', user_data)
+        self.assertNotIn('address', user_data)
+    
+    def test_user_basic_list_search(self):
+        """Se puede buscar usuarios por nombre o email"""
+        url = reverse('user_basic_list')
+        
+        # Buscar por nombre
+        response = self.client.get(url, {'search': 'Regular'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        
+        # Buscar sin resultados
+        response = self.client.get(url, {'search': 'NoExiste'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 0)
+
     # ============================================
     # TESTS DE REGISTRO
     # ============================================
@@ -622,3 +668,4 @@ class UserAPITestCase(APITestCase):
         # Verificar que sigue activo
         self.admin_user.refresh_from_db()
         self.assertTrue(self.admin_user.is_active)
+

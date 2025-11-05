@@ -87,6 +87,13 @@ class RegisterUserSerializer(serializers.ModelSerializer):
         return representation
         
 
+class UserBasicSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(source='get_full_name', read_only=True)
+
+    class Meta:
+        model = User
+        fields = ('id', 'email', 'first_name', 'last_name', 'full_name', 'phone_number')
+
 #Serializador para mostrar información del perfil de usuario
 class UserProfileSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source='get_full_name', read_only=True)

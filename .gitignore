@@ -10,6 +10,12 @@ __pycache__/
 db.sqlite3
 *.log
 
+# Media files (uploaded content) - exclude user uploads but keep defaults
+backend/media/raffles/[0-9]*/
+backend/media/raffles/20*/
+backend/media/uploads/
+# Keep backend/media/raffles/defaults/
+
 # Entorno virtual
 venv/
 env/
