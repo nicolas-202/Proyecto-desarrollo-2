@@ -1,9 +1,15 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser
 from .models import Raffle
-from .serializer import RaffleCreateSerializer
+from .serializer import (
+    RaffleCreateSerializer, 
+    RaffleListSerializer, 
+    RaffleSoftDeleteSerializer,
+    RaffleUpdateSerializer
+)
+from raffleInfo.serializer import PrizeTypeSerializer, StateRaffleSerializer
 
 
 class RaffleCreateView(generics.CreateAPIView):
@@ -28,3 +34,199 @@ class RaffleCreateView(generics.CreateAPIView):
             'raffle_name': raffle.raffle_name,
             'raffle_state': raffle.raffle_state.state_raffle_name if raffle.raffle_state else None
         }, status=status.HTTP_201_CREATED)
+
+class RaffleListView(generics.ListAPIView):
+    """
+    Vista para listar todas las rifas activas con detalles expandidos
+    Acceso público - no requiere autenticación
+    """
+    serializer_class = RaffleListSerializer
+    permission_classes = [AllowAny]  # Acceso público
+    
+    def get_queryset(self):
+        """
+        Retorna solo las rifas que están en estado activo
+        """
+        from raffleInfo.models import StateRaffle
+        
+        # Obtener todos los estados que se consideren "activos"
+        active_states = StateRaffle.objects.filter(
+            state_raffle_code__iexact='ACT'
+        )
+        
+        # Si no encuentra por código, buscar por nombre
+        if not active_states.exists():
+            active_states = StateRaffle.objects.filter(
+                state_raffle_name__icontains='activ'
+            )
+        
+        return Raffle.objects.filter(
+            raffle_state__in=active_states
+        ).select_related('raffle_prize_type', 'raffle_state')
+
+
+class RaffleSoftDeleteView(generics.UpdateAPIView):
+    """
+    Vista para soft delete de rifas
+    Cambia el estado de la rifa a inactivo en lugar de eliminarla
+    """
+    queryset = Raffle.objects.all()
+    serializer_class = RaffleSoftDeleteSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'pk'
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Realizar soft delete de la rifa
+        """
+        instance = self.get_object()
+        
+        # Verificar que el usuario sea el creador de la rifa
+        if instance.raffle_created_by != request.user:
+            return Response({
+                'error': 'Solo el creador de la rifa puede eliminarla'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            updated_instance = serializer.save()
+            return Response({
+                'message': 'Rifa eliminada exitosamente (soft delete)',
+                'raffle_id': updated_instance.raffle_id,
+                'raffle_name': updated_instance.raffle_name,
+                'new_state': updated_instance.raffle_state.state_raffle_name
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'error': f'Error al eliminar la rifa: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class RaffleDetailView(generics.RetrieveAPIView):
+    """
+    Vista para obtener el detalle de una rifa específica
+    Acceso público
+    """
+    queryset = Raffle.objects.all().select_related('raffle_prize_type', 'raffle_state', 'raffle_created_by')
+    serializer_class = RaffleListSerializer
+    permission_classes = [AllowAny]
+    lookup_field = 'pk'
+
+
+class RaffleUpdateView(generics.UpdateAPIView):
+    """
+    Vista para actualizar rifas existentes
+    Solo el creador puede actualizar
+    """
+    queryset = Raffle.objects.all()
+    serializer_class = RaffleUpdateSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    lookup_field = 'pk'
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Actualizar rifa existente
+        """
+        instance = self.get_object()
+        
+        # Verificar que el usuario sea el creador de la rifa
+        if instance.raffle_created_by != request.user:
+            return Response({
+                'error': 'Solo el creador de la rifa puede modificarla'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        partial = kwargs.pop('partial', False)
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            updated_instance = serializer.save()
+            return Response({
+                'message': 'Rifa actualizada exitosamente',
+                'raffle_id': updated_instance.raffle_id,
+                'raffle_name': updated_instance.raffle_name
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'error': f'Error al actualizar la rifa: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    def patch(self, request, *args, **kwargs):
+        """
+        Actualización parcial
+        """
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+
+
+class RaffleMyListView(generics.ListAPIView):
+    """
+    Vista para que un usuario vea solo sus rifas creadas
+    """
+    serializer_class = RaffleListSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """
+        Retorna solo las rifas creadas por el usuario autenticado
+        """
+        return Raffle.objects.filter(
+            raffle_created_by=self.request.user
+        ).select_related('raffle_prize_type', 'raffle_state').order_by('-raffle_created_at')
+
+
+class RaffleUserListView(generics.ListAPIView):
+    """
+    Vista pública para ver rifas de un usuario específico
+    Puede incluir rifas inactivas si el usuario autenticado es el mismo
+    """
+    serializer_class = RaffleListSerializer
+    permission_classes = [AllowAny]
+    
+    def get_queryset(self):
+        """
+        Retorna rifas de un usuario específico
+        """
+        user_id = self.kwargs.get('user_id')
+        include_inactive = self.request.query_params.get('include_inactive', 'false').lower() == 'true'
+        
+        # Base queryset
+        queryset = Raffle.objects.filter(
+            raffle_created_by_id=user_id
+        ).select_related('raffle_prize_type', 'raffle_state', 'raffle_created_by')
+        
+        # Si no se solicitan inactivas O no es el mismo usuario, filtrar solo activas
+        if not include_inactive or not self._is_same_user(user_id):
+            from raffleInfo.models import StateRaffle
+            
+            # Obtener estados activos
+            active_states = StateRaffle.objects.filter(
+                state_raffle_code__iexact='ACT'
+            )
+            
+            if not active_states.exists():
+                active_states = StateRaffle.objects.filter(
+                    state_raffle_name__icontains='activ'
+                )
+            
+            queryset = queryset.filter(raffle_state__in=active_states)
+        
+        return queryset.order_by('-raffle_created_at')
+    
+    def _is_same_user(self, user_id):
+        """
+        Verifica si el usuario autenticado es el mismo que se está consultando
+        """
+        if not self.request.user.is_authenticated:
+            return False
+        
+        try:
+            return int(user_id) == self.request.user.id
+        except (ValueError, TypeError):
+            return False
+        

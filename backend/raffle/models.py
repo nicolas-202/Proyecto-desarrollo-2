@@ -99,10 +99,6 @@ class Raffle(models.Model):
         related_name='created_raffles',
         verbose_name='Creado por'
     )
-    raffle_is_active = models.BooleanField(
-        default=True,
-        verbose_name='Rifa activa'
-    )
     
     # Campos de auditoría (recomendados)
     raffle_created_at = models.DateTimeField(
@@ -128,7 +124,7 @@ class Raffle(models.Model):
         verbose_name_plural = 'Rifas'
         ordering = ['-raffle_created_at']
         indexes = [
-            models.Index(fields=['raffle_state', 'raffle_is_active']),
+            models.Index(fields=['raffle_state']),
             models.Index(fields=['raffle_start_date', 'raffle_draw_date']),
             models.Index(fields=['raffle_draw_date']),
             models.Index(fields=['raffle_created_by']),
@@ -158,8 +154,60 @@ class Raffle(models.Model):
             raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
+        # Asignar estado por defecto "Activo" al crear nueva rifa
+        if not self.pk and not self.raffle_state:  # Solo para nuevas rifas
+            self._assign_default_active_state()
+        
         self.clean()
         super().save(*args, **kwargs)
+    
+    def _assign_default_active_state(self):
+        """
+        Método privado para asignar estado activo por defecto
+        """
+        from raffleInfo.models import StateRaffle
+        
+        try:
+            # Buscar estado "Activo" por código
+            active_state = StateRaffle.objects.filter(
+                state_raffle_code__iexact='ACT'
+            ).first()
+            
+            if not active_state:
+                # Si no encuentra por código, buscar por nombre
+                active_state = StateRaffle.objects.filter(
+                    state_raffle_name__icontains='activ'
+                ).first()
+            
+            if active_state:
+                self.raffle_state = active_state
+                print(f"Estado por defecto asignado: {active_state.state_raffle_name}")
+            else:
+                print("Warning: No se encontró estado 'Activo' por defecto")
+                
+        except Exception as e:
+            print(f"Error al asignar estado por defecto: {e}")
+
+    def _is_in_active_state(self):
+        """
+        Método para verificar si la rifa está en un estado activo
+        """
+        if not self.raffle_state:
+            return False
+        
+        # Verificar por código de estado
+        active_codes = ['ACT', 'ACTIVE', 'A']
+        if self.raffle_state.state_raffle_code:
+            if self.raffle_state.state_raffle_code.upper() in active_codes:
+                return True
+        
+        # Verificar por nombre de estado (fallback)
+        if self.raffle_state.state_raffle_name:
+            active_keywords = ['activ', 'abierta', 'disponible', 'vigente']
+            state_name_lower = self.raffle_state.state_raffle_name.lower()
+            return any(keyword in state_name_lower for keyword in active_keywords)
+        
+        return False
 
     @property
     def image_url(self):
@@ -234,7 +282,7 @@ class Raffle(models.Model):
         """Verifica si la rifa está activa para ventas"""
         now = timezone.now()
         return (
-            self.raffle_is_active and
+            self._is_in_active_state() and
             self.raffle_start_date <= now < self.raffle_draw_date and
             self.numbers_available > 0 and
             not self.raffle_winner  # No ha sido sorteada
@@ -245,7 +293,7 @@ class Raffle(models.Model):
         """Verifica si la rifa está lista para ser sorteada"""
         now = timezone.now()
         return (
-            self.raffle_is_active and
+            self._is_in_active_state() and
             now >= self.raffle_draw_date and
             self.minimum_reached and
             not self.raffle_winner  # No ha sido sorteada aún
@@ -255,7 +303,7 @@ class Raffle(models.Model):
     def can_be_drawn(self):
         """Verifica si la rifa puede ser sorteada (sin importar la fecha)"""
         return (
-            self.raffle_is_active and
+            self._is_in_active_state() and
             self.minimum_reached and
             not self.raffle_winner
         )
@@ -302,7 +350,7 @@ class Raffle(models.Model):
         if self.raffle_winner:
             return False, "El sorteo ya fue ejecutado"
         
-        if not self.raffle_is_active:
+        if not self._is_in_active_state():
             return False, "La rifa no está activa"
         
         if now < self.raffle_draw_date:
@@ -316,3 +364,70 @@ class Raffle(models.Model):
             return False, "No hay números vendidos para sortear"
         
         return True, "Listo para sortear"
+    
+    def execute_raffle_draw(self, winner_user=None):
+        """
+        Ejecuta el sorteo de la rifa y cambia automáticamente el estado a inactivo
+        """
+        from raffleInfo.models import StateRaffle
+        
+        # Verificar si se puede ejecutar el sorteo
+        can_draw, message = self.can_execute_draw()
+        if not can_draw:
+            raise ValueError(message)
+        
+        # Asignar ganador
+        if winner_user:
+            self.raffle_winner = winner_user
+        
+        # Cambiar estado a inactivo automáticamente
+        try:
+            inactive_state = StateRaffle.objects.filter(
+                state_raffle_code__iexact='INA'  # Asumiendo 'INA' para Inactivo
+            ).first()
+            
+            if not inactive_state:
+                # Buscar por nombre si no encuentra por código
+                inactive_state = StateRaffle.objects.filter(
+                    state_raffle_name__icontains='inactiv'
+                ).first()
+            
+            if inactive_state:
+                self.raffle_state = inactive_state
+                print(f"Estado cambiado a: {inactive_state.state_raffle_name}")
+            else:
+                print("Warning: No se encontró estado 'Inactivo' para asignar después del sorteo")
+                
+        except Exception as e:
+            print(f"Error al cambiar estado después del sorteo: {e}")
+        
+        # Guardar cambios
+        self.save()
+        
+        return f"Sorteo ejecutado exitosamente. Ganador: {self.raffle_winner}"
+    
+    def mark_as_inactive(self):
+        """
+        Marca la rifa como inactiva manualmente
+        """
+        from raffleInfo.models import StateRaffle
+        
+        try:
+            inactive_state = StateRaffle.objects.filter(
+                state_raffle_code__iexact='INA'
+            ).first()
+            
+            if not inactive_state:
+                inactive_state = StateRaffle.objects.filter(
+                    state_raffle_name__icontains='inactiv'
+                ).first()
+            
+            if inactive_state:
+                self.raffle_state = inactive_state
+                self.save()
+                return f"Rifa marcada como {inactive_state.state_raffle_name}"
+            else:
+                return "Error: No se encontró estado inactivo"
+                
+        except Exception as e:
+            return f"Error al marcar como inactiva: {e}"
