@@ -110,7 +110,7 @@ class RaffleDetailView(generics.RetrieveAPIView):
     Vista para obtener el detalle de una rifa específica
     Acceso público
     """
-    queryset = Raffle.objects.all().select_related('raffle_prize_type', 'raffle_state', 'raffle_created_by')
+    queryset = Raffle.objects.all().select_related('raffle_prize_type', 'raffle_state', 'raffle_created_by', 'raffle_winner')
     serializer_class = RaffleListSerializer
     permission_classes = [AllowAny]
     lookup_field = 'pk'
@@ -162,23 +162,6 @@ class RaffleUpdateView(generics.UpdateAPIView):
         """
         kwargs['partial'] = True
         return self.update(request, *args, **kwargs)
-
-
-class RaffleMyListView(generics.ListAPIView):
-    """
-    Vista para que un usuario vea solo sus rifas creadas
-    """
-    serializer_class = RaffleListSerializer
-    permission_classes = [IsAuthenticated]
-    
-    def get_queryset(self):
-        """
-        Retorna solo las rifas creadas por el usuario autenticado
-        """
-        return Raffle.objects.filter(
-            raffle_created_by=self.request.user
-        ).select_related('raffle_prize_type', 'raffle_state').order_by('-raffle_created_at')
-
 
 class RaffleUserListView(generics.ListAPIView):
     """

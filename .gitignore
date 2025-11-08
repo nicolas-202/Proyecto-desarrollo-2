@@ -6,6 +6,7 @@ __pycache__/
 *.pyd
 *.pyc
 
+rifas_versionmejorada.html
 # Django
 db.sqlite3
 *.log

@@ -7,10 +7,6 @@ from user.models import User
 import os
 
 def raffle_image_upload_path(instance, filename):
-    """
-    Función para definir la ruta de subida de imágenes de rifas
-    Estructura: media/raffles/{year}/{month}/{raffle_id}_{filename}
-    """
     # Obtener la fecha actual
     now = timezone.now()
     # Obtener la extensión del archivo y limpiar el nombre
@@ -28,7 +24,7 @@ def raffle_image_upload_path(instance, filename):
     
     return os.path.join('raffles', str(now.year), str(now.month), filename)
 
-# Create your models here.
+
 class Raffle(models.Model):
     raffle_name = models.CharField(
         max_length=100, 
@@ -85,22 +81,21 @@ class Raffle(models.Model):
     )
     raffle_prize_type = models.ForeignKey(
         PrizeType, 
-        on_delete=models.RESTRICT,  # Cambié de CASCADE a RESTRICT para mayor seguridad
+        on_delete=models.RESTRICT,  
         verbose_name='Tipo de premio'
     )
     raffle_state = models.ForeignKey(
         StateRaffle, 
-        on_delete=models.RESTRICT,  # Cambié de CASCADE a RESTRICT
+        on_delete=models.RESTRICT,  
         verbose_name='Estado de la rifa'
     )
     raffle_created_by = models.ForeignKey(
         User, 
-        on_delete=models.RESTRICT,  # Cambié de CASCADE a RESTRICT
+        on_delete=models.RESTRICT,  
         related_name='created_raffles',
         verbose_name='Creado por'
     )
     
-    # Campos de auditoría (recomendados)
     raffle_created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='Fecha de creación'
@@ -129,6 +124,8 @@ class Raffle(models.Model):
             models.Index(fields=['raffle_draw_date']),
             models.Index(fields=['raffle_created_by']),
             models.Index(fields=['raffle_winner']),
+            models.Index(fields=['raffle_name']),
+            models.Index(fields=['raffle_prize_type'])
         ]
 
     def clean(self):
@@ -153,18 +150,14 @@ class Raffle(models.Model):
         if errors:
             raise ValidationError(errors)
 
-    def save(self, *args, **kwargs):
-        # Asignar estado por defecto "Activo" al crear nueva rifa
-        if not self.pk and not self.raffle_state:  # Solo para nuevas rifas
+    def save(self, *args, **kwargs): #Asignar estado activo por defecto si no tiene estado
+        if not self.pk and not self.raffle_state:  
             self._assign_default_active_state()
         
         self.clean()
         super().save(*args, **kwargs)
     
-    def _assign_default_active_state(self):
-        """
-        Método privado para asignar estado activo por defecto
-        """
+    def _assign_default_active_state(self): #Asignar estado "Activo" por defectoS
         from raffleInfo.models import StateRaffle
         
         try:
@@ -196,16 +189,13 @@ class Raffle(models.Model):
             return False
         
         # Verificar por código de estado
-        active_codes = ['ACT', 'ACTIVE', 'A']
         if self.raffle_state.state_raffle_code:
-            if self.raffle_state.state_raffle_code.upper() in active_codes:
+            if self.raffle_state.state_raffle_code.upper() == 'ACT':
                 return True
         
         # Verificar por nombre de estado (fallback)
         if self.raffle_state.state_raffle_name:
-            active_keywords = ['activ', 'abierta', 'disponible', 'vigente']
-            state_name_lower = self.raffle_state.state_raffle_name.lower()
-            return any(keyword in state_name_lower for keyword in active_keywords)
+            return 'activa' in self.raffle_state.state_raffle_name.lower()
         
         return False
 
@@ -219,19 +209,7 @@ class Raffle(models.Model):
         
         # Retornar imagen por defecto
         from django.conf import settings
-        import os
-        
-        # Buscar imagen por defecto en diferentes formatos
-        default_path_base = os.path.join(settings.MEDIA_ROOT, 'raffles', 'defaults', 'default_raffle')
-        possible_extensions = ['.jpg', '.jpeg', '.png', '.webp']
-        
-        for ext in possible_extensions:
-            full_path = default_path_base + ext
-            if os.path.exists(full_path):
-                return f"{settings.MEDIA_URL}raffles/defaults/default_raffle{ext}"
-        
-        # Si no encuentra ninguna imagen, retornar None o una URL placeholder
-        return None
+        return f"{settings.MEDIA_URL}raffles/defaults/default_raffle.jpg"
     
     @property
     def has_custom_image(self):
@@ -239,18 +217,6 @@ class Raffle(models.Model):
         Verifica si la rifa tiene una imagen personalizada
         """
         return bool(self.raffle_image)
-    
-    @property
-    def has_image(self):
-        """
-        Verifica si la rifa tiene imagen (siempre True porque incluye la por defecto)
-        """
-        return True
-
-    @property
-    def total_potential_income(self):
-        """Calcula el ingreso potencial total"""
-        return self.raffle_number_amount * self.raffle_number_price
 
     @property
     def numbers_sold(self):
@@ -264,13 +230,6 @@ class Raffle(models.Model):
     def numbers_available(self):
         """Cantidad de números disponibles"""
         return self.raffle_number_amount - self.numbers_sold
-    
-    @property
-    def sales_progress_percentage(self):
-        """Porcentaje de progreso de ventas"""
-        if self.raffle_number_amount == 0:
-            return 0
-        return (self.numbers_sold / self.raffle_number_amount) * 100
     
     @property
     def minimum_reached(self):
@@ -307,13 +266,6 @@ class Raffle(models.Model):
             self.minimum_reached and
             not self.raffle_winner
         )
-    
-    @property
-    def time_until_draw(self):
-        """Retorna el tiempo restante hasta el sorteo"""
-        if self.raffle_draw_date:
-            return self.raffle_draw_date - timezone.now()
-        return None
     
     @property
     def status_display(self):
@@ -380,23 +332,24 @@ class Raffle(models.Model):
         if winner_user:
             self.raffle_winner = winner_user
         
-        # Cambiar estado a inactivo automáticamente
+        # Cambiar estado a sorteado automáticamente
         try:
-            inactive_state = StateRaffle.objects.filter(
-                state_raffle_code__iexact='INA'  # Asumiendo 'INA' para Inactivo
+            # Buscar estado "Sorteado" por código
+            sorted_state = StateRaffle.objects.filter(
+                state_raffle_code__iexact='SOR'
             ).first()
             
-            if not inactive_state:
-                # Buscar por nombre si no encuentra por código
-                inactive_state = StateRaffle.objects.filter(
-                    state_raffle_name__icontains='inactiv'
+            if not sorted_state:
+                # Si no encuentra por código, buscar por nombre
+                sorted_state = StateRaffle.objects.filter(
+                    state_raffle_name__icontains='sortead'
                 ).first()
             
-            if inactive_state:
-                self.raffle_state = inactive_state
-                print(f"Estado cambiado a: {inactive_state.state_raffle_name}")
+            if sorted_state:
+                self.raffle_state = sorted_state
+                print(f"Estado cambiado a: {sorted_state.state_raffle_name}")
             else:
-                print("Warning: No se encontró estado 'Inactivo' para asignar después del sorteo")
+                print("Warning: No se encontró estado 'Sorteado' por defecto")
                 
         except Exception as e:
             print(f"Error al cambiar estado después del sorteo: {e}")
@@ -405,29 +358,3 @@ class Raffle(models.Model):
         self.save()
         
         return f"Sorteo ejecutado exitosamente. Ganador: {self.raffle_winner}"
-    
-    def mark_as_inactive(self):
-        """
-        Marca la rifa como inactiva manualmente
-        """
-        from raffleInfo.models import StateRaffle
-        
-        try:
-            inactive_state = StateRaffle.objects.filter(
-                state_raffle_code__iexact='INA'
-            ).first()
-            
-            if not inactive_state:
-                inactive_state = StateRaffle.objects.filter(
-                    state_raffle_name__icontains='inactiv'
-                ).first()
-            
-            if inactive_state:
-                self.raffle_state = inactive_state
-                self.save()
-                return f"Rifa marcada como {inactive_state.state_raffle_name}"
-            else:
-                return "Error: No se encontró estado inactivo"
-                
-        except Exception as e:
-            return f"Error al marcar como inactiva: {e}"
