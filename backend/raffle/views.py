@@ -94,7 +94,7 @@ class RaffleSoftDeleteView(generics.UpdateAPIView):
             updated_instance = serializer.save()
             return Response({
                 'message': 'Rifa eliminada exitosamente (soft delete)',
-                'raffle_id': updated_instance.raffle_id,
+                'raffle_id': updated_instance.id,
                 'raffle_name': updated_instance.raffle_name,
                 'new_state': updated_instance.raffle_state.state_raffle_name
             }, status=status.HTTP_200_OK)
@@ -147,7 +147,7 @@ class RaffleUpdateView(generics.UpdateAPIView):
             updated_instance = serializer.save()
             return Response({
                 'message': 'Rifa actualizada exitosamente',
-                'raffle_id': updated_instance.raffle_id,
+                'raffle_id': updated_instance.id,
                 'raffle_name': updated_instance.raffle_name
             }, status=status.HTTP_200_OK)
             

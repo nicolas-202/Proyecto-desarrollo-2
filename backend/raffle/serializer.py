@@ -10,12 +10,6 @@ class RaffleCreateSerializer(serializers.ModelSerializer):
     """
     raffle_image = serializers.ImageField(required=False)  
     
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Configurar queryset para raffle_state si se quiere override manual
-        from raffleInfo.models import StateRaffle
-        self.fields['raffle_state'].queryset = StateRaffle.objects.filter(state_raffle_is_active=True)
-    
     class Meta: 
         model = Raffle
         fields = [
@@ -188,8 +182,8 @@ class RaffleSoftDeleteSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Raffle
-        fields = ['raffle_id']
-        read_only_fields = ['raffle_id']
+        fields = ['id']
+        read_only_fields = ['id']
     
     def update(self, instance, validated_data):
         """

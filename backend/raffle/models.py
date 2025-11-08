@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from decimal import Decimal
 from raffleInfo.models import PrizeType, StateRaffle
 from user.models import User
 import os
@@ -59,7 +60,7 @@ class Raffle(models.Model):
     raffle_number_price = models.DecimalField(
         max_digits=10, 
         decimal_places=2,
-        validators=[MinValueValidator(0.01)],
+        validators=[MinValueValidator(Decimal('0.01'))],
         verbose_name='Precio por número',
         help_text='Precio individual de cada número'
     )
@@ -75,7 +76,7 @@ class Raffle(models.Model):
     raffle_price_amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        validators=[MinValueValidator(0.01)],
+        validators=[MinValueValidator(Decimal('0.01'))],
         verbose_name='Monto del premio',
         help_text='Monto total del premio de la rifa'
     )
@@ -151,7 +152,8 @@ class Raffle(models.Model):
             raise ValidationError(errors)
 
     def save(self, *args, **kwargs): #Asignar estado activo por defecto si no tiene estado
-        if not self.pk and not self.raffle_state:  
+        # Solo intentar asignar estado por defecto si no tiene pk (es nuevo) y no tiene estado asignado
+        if not self.pk and not self.raffle_state_id:  
             self._assign_default_active_state()
         
         self.clean()
