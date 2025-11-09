@@ -32,6 +32,7 @@ urlpatterns = [
     path('api/v1/interactions/', include('interactions.urls')),
     path('api/v1/raffle-info/', include('raffleInfo.urls')),
     path('api/v1/raffle/', include('raffle.urls')),
+    path('api/v1/tickets/', include('tickets.urls')),
 ]
 
 # Servir archivos media en desarrollo

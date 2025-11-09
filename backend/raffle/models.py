@@ -129,20 +129,16 @@ class Raffle(models.Model):
             models.Index(fields=['raffle_prize_type'])
         ]
 
-    def clean(self):
-        """Validaciones personalizadas"""
+    def clean(self): #Validaciones personalizadas
         errors = []
-        
-        # Validar que la fecha de sorteo sea posterior a la fecha de inicio
         if self.raffle_start_date and self.raffle_draw_date:
             if self.raffle_start_date >= self.raffle_draw_date:
                 errors.append('La fecha de inicio debe ser anterior a la fecha del sorteo')
         
-        # Validar que la fecha de sorteo no sea en el pasado (solo para actualizaciones)
-        if self.pk and self.raffle_draw_date and self.raffle_draw_date < timezone.now():
+        if (self.pk and self.raffle_draw_date and self.raffle_draw_date < timezone.now() 
+            and not self.raffle_winner):  # Permitir guardar si ya tiene ganador (rifa sorteada)
             errors.append('La fecha del sorteo no puede ser en el pasado')
         
-        # Validar que el mínimo de números sea menor o igual al total
         if (self.raffle_minimum_numbers_sold and 
             self.raffle_number_amount and 
             self.raffle_minimum_numbers_sold > self.raffle_number_amount):
@@ -151,17 +147,14 @@ class Raffle(models.Model):
         if errors:
             raise ValidationError(errors)
 
-    def save(self, *args, **kwargs): #Asignar estado activo por defecto si no tiene estado
-        # Solo intentar asignar estado por defecto si no tiene pk (es nuevo) y no tiene estado asignado
+    def save(self, *args, **kwargs): #Asignar estado activo por defecto solo si la rifa es nueva
         if not self.pk and not self.raffle_state_id:  
             self._assign_default_active_state()
-        
         self.clean()
         super().save(*args, **kwargs)
     
-    def _assign_default_active_state(self): #Asignar estado "Activo" por defectoS
+    def _assign_default_active_state(self): #Asignar estado "Activo" por defecto
         from raffleInfo.models import StateRaffle
-        
         try:
             # Buscar estado "Activo" por código
             active_state = StateRaffle.objects.filter(
@@ -183,10 +176,7 @@ class Raffle(models.Model):
         except Exception as e:
             print(f"Error al asignar estado por defecto: {e}")
 
-    def _is_in_active_state(self):
-        """
-        Método para verificar si la rifa está en un estado activo
-        """
+    def _is_in_active_state(self): #Verifica si la rifa está en estado activo
         if not self.raffle_state:
             return False
         
@@ -202,10 +192,7 @@ class Raffle(models.Model):
         return False
 
     @property
-    def image_url(self):
-        """
-        Retorna la URL de la imagen si existe, sino la imagen por defecto
-        """
+    def image_url(self):#retorna la URL de la imagen si existe, sino la imagen por defecto
         if self.raffle_image:
             return self.raffle_image.url
         
@@ -214,33 +201,19 @@ class Raffle(models.Model):
         return f"{settings.MEDIA_URL}raffles/defaults/default_raffle.jpg"
     
     @property
-    def has_custom_image(self):
-        """
-        Verifica si la rifa tiene una imagen personalizada
-        """
-        return bool(self.raffle_image)
-
-    @property
-    def numbers_sold(self):
-        """Cantidad de números vendidos (simulado por ahora)"""
-        # TODO: Cuando implementes el modelo de boletos/números vendidos,
-        # reemplaza esto con la consulta real
-        # return self.raffle_tickets.filter(is_paid=True).count()
-        return 0  # Por ahora retorna 0
+    def numbers_sold(self): #Cantidad de números vendidos
+        return self.sold_tickets.count()
     
     @property
-    def numbers_available(self):
-        """Cantidad de números disponibles"""
+    def numbers_available(self): #Cantidad de números disponibles
         return self.raffle_number_amount - self.numbers_sold
     
     @property
-    def minimum_reached(self):
-        """Verifica si se alcanzó el mínimo de números vendidos"""
+    def minimum_reached(self): #Verifica si se alcanzó el mínimo para sortear
         return self.numbers_sold >= self.raffle_minimum_numbers_sold
     
     @property
-    def is_active_for_sales(self):
-        """Verifica si la rifa está activa para ventas"""
+    def is_active_for_sales(self): #Verifica si la rifa está activa para ventas
         now = timezone.now()
         return (
             self._is_in_active_state() and
@@ -250,8 +223,7 @@ class Raffle(models.Model):
         )
     
     @property
-    def is_ready_for_draw(self):
-        """Verifica si la rifa está lista para ser sorteada"""
+    def is_ready_for_draw(self): #Verifica si la rifa está lista para ser sorteada
         now = timezone.now()
         return (
             self._is_in_active_state() and
@@ -261,8 +233,7 @@ class Raffle(models.Model):
         )
     
     @property
-    def can_be_drawn(self):
-        """Verifica si la rifa puede ser sorteada (sin importar la fecha)"""
+    def can_be_drawn(self): #Verifica si la rifa puede ser sorteada (sin importar la fecha)
         return (
             self._is_in_active_state() and
             self.minimum_reached and
@@ -270,8 +241,7 @@ class Raffle(models.Model):
         )
     
     @property
-    def status_display(self):
-        """Retorna una descripción amigable del estado actual"""
+    def status_display(self): #Retorna una descripción del estado actual de la rifa
         now = timezone.now()
         
         if self.raffle_winner:
@@ -292,13 +262,123 @@ class Raffle(models.Model):
         else:
             return "Estado desconocido"
 
-    def __str__(self):
+    def __str__(self): #Representación en cadena
         return self.raffle_name
     
-    def can_execute_draw(self):
+    @property
+    def available_numbers(self): #Obtiene lista de números disponibles para comprar
+        sold_numbers = set(self.sold_tickets.values_list('number', flat=True))
+        all_numbers = set(range(1, self.raffle_number_amount + 1))
+        return sorted(list(all_numbers - sold_numbers))
+    
+    @property
+    def sold_numbers(self):
+        return list(self.sold_tickets.values_list('number', flat=True))
+    
+    def cancel_raffle_and_refund(self, admin_reason=None): #Cancela la rifa y devuelve dinero - Para uso administrativo
         """
-        Verifica si se puede ejecutar el sorteo y retorna el resultado
+        Cancela la rifa y reembolsa a todos los participantes.
+        USO ADMINISTRATIVO: Para casos de incumplimiento, fraude o disputas.
+        
+        Permite cancelar incluso rifas ya sorteadas en casos excepcionales.
         """
+        # Reembolsar todos los tickets de esta rifa
+        tickets = self.sold_tickets.all()
+        refunded_count = 0
+        total_refunded = 0
+        
+        for ticket in tickets:
+            # Devolver dinero al método de pago
+            ticket.payment_method.add_balance(self.raffle_number_price)
+            total_refunded += self.raffle_number_price
+            refunded_count += 1
+        
+        # Eliminar todos los tickets (soft delete implícito)
+        tickets.delete()
+        
+        # Cambiar estado a cancelado si existe
+        from raffleInfo.models import StateRaffle
+        try:
+            cancelled_state = StateRaffle.objects.filter(
+                state_raffle_code__iexact='CAN'
+            ).first() or StateRaffle.objects.filter(
+                state_raffle_name__icontains='cancel'
+            ).first()
+            
+            if cancelled_state:
+                self.raffle_state = cancelled_state
+                self.save()
+        except Exception as e:
+            print(f"Error al cambiar estado a cancelado: {e}")
+        
+        return {
+            'message': 'Rifa cancelada y reembolsos procesados exitosamente',
+            'tickets_refunded': refunded_count,
+            'total_amount_refunded': total_refunded,
+            'admin_reason': admin_reason or 'No especificado',
+            'cancellation_date': timezone.now(),
+            'was_previously_drawn': bool(self.raffle_winner),
+            'raffle_status': self.status_display
+        }
+    
+    def soft_delete_and_refund(self, organizer_user):
+        """
+        Soft delete de la rifa por parte del organizador.
+        Devuelve dinero a participantes y cancela la rifa.
+        
+        SOLO para uso del dueño/organizador de la rifa.
+        """
+        # Validar que el usuario sea el organizador
+        if organizer_user != self.raffle_created_by:
+            raise ValidationError("Solo el organizador puede cancelar la rifa")
+        
+        # No permitir cancelación si ya fue sorteada
+        if self.raffle_winner:
+            raise ValidationError("No se puede cancelar una rifa que ya fue sorteada")
+        
+        # Reembolsar todos los tickets
+        tickets = self.sold_tickets.all()
+        refunded_count = 0
+        total_refunded = 0
+        
+        for ticket in tickets:
+            # Devolver dinero al método de pago
+            ticket.payment_method.add_balance(self.raffle_number_price)
+            total_refunded += self.raffle_number_price
+            refunded_count += 1
+        
+        # Eliminar todos los tickets
+        tickets.delete()
+        
+        # Cambiar estado a cancelado
+        from raffleInfo.models import StateRaffle
+        try:
+            cancelled_state = StateRaffle.objects.filter(
+                state_raffle_code__iexact='CAN'
+            ).first() or StateRaffle.objects.filter(
+                state_raffle_name__icontains='cancel'
+            ).first()
+            
+            if cancelled_state:
+                self.raffle_state = cancelled_state
+                self.save()
+        except Exception as e:
+            print(f"Error al cambiar estado a cancelado: {e}")
+        
+        return {
+            'message': 'Rifa cancelada exitosamente por el organizador',
+            'tickets_refunded': refunded_count,
+            'total_amount_refunded': total_refunded,
+            'organizer': organizer_user.email,
+            'cancellation_date': timezone.now(),
+            'cancellation_type': 'organizer_soft_delete'
+        }
+    
+    @property
+    def total_revenue(self): #Total recaudado por venta de tickets
+        return Decimal(str(self.numbers_sold)) * self.raffle_number_price
+    
+    def can_execute_draw(self): #Verifica si se puede ejecutar el sorteo
         now = timezone.now()
         
         if self.raffle_winner:
@@ -314,49 +394,58 @@ class Raffle(models.Model):
             remaining = self.raffle_minimum_numbers_sold - self.numbers_sold
             return False, f"No se alcanzó el mínimo. Faltan {remaining} números por vender"
         
-        if self.numbers_sold == 0:
-            return False, "No hay números vendidos para sortear"
-        
         return True, "Listo para sortear"
     
-    def execute_raffle_draw(self, winner_user=None):
-        """
-        Ejecuta el sorteo de la rifa y cambia automáticamente el estado a inactivo
-        """
-        from raffleInfo.models import StateRaffle
-        
-        # Verificar si se puede ejecutar el sorteo
-        can_draw, message = self.can_execute_draw()
+    def execute_raffle_draw(self): #Ejacuta el sorteo de la rifa
+
+        can_draw, message = self.can_execute_draw() #Verificar si se puede ejecutar el sorteo
         if not can_draw:
             raise ValueError(message)
         
-        # Asignar ganador
-        if winner_user:
-            self.raffle_winner = winner_user
+        import random #Se realiza el sorteo de forma aleatoria 
+        sold_tickets = list(self.sold_tickets.all())
         
-        # Cambiar estado a sorteado automáticamente
+        if not sold_tickets:
+            raise ValueError("No hay tickets vendidos para sortear")
+        
+        winner_ticket = random.choice(sold_tickets)
+        
+        winner_ticket.is_winner = True
+        winner_ticket.save()
+        
+        self.raffle_winner = winner_ticket.user #Se actualiza el ganador de la rifa
+        
+        self._change_state_to_sorted() #Se cambia el estado de la rifa a sorteada
+        
+        self.save()
+        
+        total_sold = self.numbers_sold
+        total_revenue = total_sold * self.raffle_number_price
+        
+        return { #Resultados del sorteo
+            'message': f"¡Sorteo 100% aleatorio ejecutado exitosamente!",
+            'winner_user': winner_ticket.user.email,
+            'winner_number': winner_ticket.number,
+            'winner_payment_method': str(winner_ticket.payment_method.payment_method_type),
+            'prize_type': self.raffle_prize_type.prize_type_name,
+            'prize_amount': str(self.raffle_price_amount),
+            'tickets_sold': total_sold,
+            'total_revenue': str(total_revenue),
+            'raffle_status': self.status_display,
+        }
+    
+    def _change_state_to_sorted(self): #Cambia el estado de la rifa a sorteada
+
         try:
-            # Buscar estado "Sorteado" por código
             sorted_state = StateRaffle.objects.filter(
                 state_raffle_code__iexact='SOR'
+            ).first() or StateRaffle.objects.filter(
+                state_raffle_name__icontains='sortead'
             ).first()
-            
-            if not sorted_state:
-                # Si no encuentra por código, buscar por nombre
-                sorted_state = StateRaffle.objects.filter(
-                    state_raffle_name__icontains='sortead'
-                ).first()
             
             if sorted_state:
                 self.raffle_state = sorted_state
-                print(f"Estado cambiado a: {sorted_state.state_raffle_name}")
             else:
-                print("Warning: No se encontró estado 'Sorteado' por defecto")
-                
+                print("Warning: No se encontró estado 'Sorteado' disponible")
         except Exception as e:
             print(f"Error al cambiar estado después del sorteo: {e}")
-        
-        # Guardar cambios
-        self.save()
-        
-        return f"Sorteo ejecutado exitosamente. Ganador: {self.raffle_winner}"

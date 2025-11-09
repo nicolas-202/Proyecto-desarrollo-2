@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'interactions',
     'raffleInfo',
     'raffle',
+    'tickets',
 ]
 
 AUTH_USER_MODEL = 'user.User'

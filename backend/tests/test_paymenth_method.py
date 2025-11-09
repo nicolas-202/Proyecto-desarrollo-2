@@ -105,7 +105,7 @@ class PaymentMethodAPITestCase(APITestCase):
             user=user,
             paymenth_method_holder_name="John Doe",
             paymenth_method_expiration_date=date.today() + timedelta(days=365),
-            balance=balance  # Agregar saldo para simulación
+            payment_method_balance=balance  # Campo corregido
         )
         payment_method.set_card_number("1234567890123456")
         payment_method.save()
@@ -203,7 +203,8 @@ class PaymentMethodAPITestCase(APITestCase):
         
         response = self.client.post(self.payment_method_list_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('paymenth_method_holder_name', response.data)
+        self.assertIn('non_field_errors', response.data)
+        self.assertIn('paymenth_method_holder_name', str(response.data['non_field_errors']))
 
     def test_create_without_card_number_fails(self):
         """Fallar al crear sin número de tarjeta"""
@@ -213,7 +214,8 @@ class PaymentMethodAPITestCase(APITestCase):
         
         response = self.client.post(self.payment_method_list_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('card_number', response.data)
+        self.assertIn('non_field_errors', response.data)
+        self.assertIn('card_number', str(response.data['non_field_errors']))
 
     def test_create_with_empty_card_number_fails(self):
         """Fallar al crear con número de tarjeta vacío"""
@@ -223,7 +225,8 @@ class PaymentMethodAPITestCase(APITestCase):
         
         response = self.client.post(self.payment_method_list_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('card_number', response.data)
+        self.assertIn('non_field_errors', response.data)
+        self.assertIn('card_number', str(response.data['non_field_errors']))
 
     def test_create_without_expiration_date_fails(self):
         """Fallar al crear sin fecha de expiración"""
@@ -233,7 +236,8 @@ class PaymentMethodAPITestCase(APITestCase):
         
         response = self.client.post(self.payment_method_list_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('paymenth_method_expiration_date', response.data)
+        self.assertIn('non_field_errors', response.data)
+        self.assertIn('paymenth_method_expiration_date', str(response.data['non_field_errors']))
 
     def test_create_with_whitespace_only_holder_name_fails(self):
         """Fallar al crear con nombre que solo tiene espacios"""
@@ -440,7 +444,8 @@ class PaymentMethodAPITestCase(APITestCase):
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Verificar que el saldo NO está en la respuesta
-        self.assertNotIn('balance', response.data)
+        self.assertNotIn('payment_method_balance', response.data)
+
 
     def test_check_sufficient_balance(self):
         """Verificar saldo suficiente"""
@@ -471,18 +476,18 @@ class PaymentMethodAPITestCase(APITestCase):
         payment_method = self.create_payment_method(balance=100.00)
         
         # Verificar saldo inicial
-        self.assertEqual(payment_method.balance, 100.00)
+        self.assertEqual(payment_method.payment_method_balance, 100.00)
         
         # Deducir saldo
         result = payment_method.deduct_balance(50.00)
         self.assertTrue(result)
-        self.assertEqual(payment_method.balance, 50.00)
+        self.assertEqual(payment_method.payment_method_balance, 50.00)
         
         # Intentar deducir más del saldo disponible
         result = payment_method.deduct_balance(100.00)
         self.assertFalse(result)
-        self.assertEqual(payment_method.balance, 50.00)  # No cambió
+        self.assertEqual(payment_method.payment_method_balance, 50.00)  # No cambió
         
         # Agregar saldo
         payment_method.add_balance(75.00)
-        self.assertEqual(payment_method.balance, 125.00)
+        self.assertEqual(payment_method.payment_method_balance, 125.00)

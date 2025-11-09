@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.utils import timezone
 from .models import Raffle
 from raffleInfo.serializer import PrizeTypeSerializer, StateRaffleSerializer
+from django.core.exceptions import ValidationError 
 
 class RaffleCreateSerializer(serializers.ModelSerializer):
     """
@@ -225,3 +226,39 @@ class RaffleSoftDeleteSerializer(serializers.ModelSerializer):
                 f"Error al realizar soft delete: {str(e)}"
             )
     
+
+class RaffleDrawSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Raffle
+        fields = ['id']
+        read_only_fields = ['id']
+
+    def update(self, instance, validated_data):
+        """Ejecutar sorteo de la rifa"""
+        try:
+            # Usar método del modelo para sorteo
+            result = instance.execute_raffle_draw()
+            return instance, result
+        except (ValidationError, ValueError) as e:
+            raise serializers.ValidationError(str(e))
+
+
+class AvailableNumbersSerializer(serializers.ModelSerializer):
+    """
+    Serializer para obtener números disponibles de una rifa
+    """
+    available_numbers = serializers.ListField(read_only=True)
+    numbers_sold = serializers.IntegerField(read_only=True)
+    numbers_available = serializers.IntegerField(read_only=True)
+    
+    class Meta:
+        model = Raffle
+        fields = [
+            'id',
+            'raffle_name',
+            'raffle_number_amount',
+            'raffle_number_price',
+            'available_numbers',
+            'numbers_sold', 
+            'numbers_available'
+        ]

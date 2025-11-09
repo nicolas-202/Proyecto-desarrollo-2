@@ -64,7 +64,7 @@ class PaymentMethod(models.Model):
         verbose_name='Últimos 4 dígitos'
     )
     # Nuevo campo saldo para simulación
-    balance = models.DecimalField(
+    payment_method_balance = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         default=0.00,
@@ -107,7 +107,7 @@ class PaymentMethod(models.Model):
         """
         Verifica si hay saldo suficiente para una transacción
         """
-        return self.balance >= amount
+        return self.payment_method_balance >= amount
 
     def deduct_balance(self, amount):
         """
@@ -115,7 +115,7 @@ class PaymentMethod(models.Model):
         Solo debe usarse internamente, no desde la API
         """
         if self.has_sufficient_balance(amount):
-            self.balance -= amount
+            self.payment_method_balance -= amount
             self.save()
             return True
         return False
@@ -125,14 +125,14 @@ class PaymentMethod(models.Model):
         Agregar saldo (para simulación de recargas)
         Solo debe usarse internamente, no desde la API
         """
-        self.balance += amount
+        self.payment_method_balance += amount
         self.save()
 
     def get_balance_display(self):
         """
         Retorna el saldo formateado para mostrar
         """
-        return f"${self.balance:,.2f}"
+        return f"${self.payment_method_balance:,.2f}"
 
     def __str__(self):
         return f"{self.payment_method_type.payment_method_type_name} - {self.get_masked_card_number()} ({self.paymenth_method_holder_name}) - {self.get_balance_display()}"

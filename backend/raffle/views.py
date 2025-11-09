@@ -1,13 +1,16 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.parsers import MultiPartParser, FormParser
 from .models import Raffle
 from .serializer import (
     RaffleCreateSerializer, 
     RaffleListSerializer, 
     RaffleSoftDeleteSerializer,
-    RaffleUpdateSerializer
+    RaffleUpdateSerializer,
+    RaffleDrawSerializer,
+    AvailableNumbersSerializer
+
 )
 from raffleInfo.serializer import PrizeTypeSerializer, StateRaffleSerializer
 
@@ -77,7 +80,7 @@ class RaffleSoftDeleteView(generics.UpdateAPIView):
     
     def update(self, request, *args, **kwargs):
         """
-        Realizar soft delete de la rifa
+        Realizar soft delete de la rifa CON REEMBOLSOS
         """
         instance = self.get_object()
         
@@ -87,16 +90,18 @@ class RaffleSoftDeleteView(generics.UpdateAPIView):
                 'error': 'Solo el creador de la rifa puede eliminarla'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        
         try:
-            updated_instance = serializer.save()
+            # Usar el nuevo método del modelo que incluye reembolsos
+            result = instance.soft_delete_and_refund(request.user)
+            
             return Response({
-                'message': 'Rifa eliminada exitosamente (soft delete)',
-                'raffle_id': updated_instance.id,
-                'raffle_name': updated_instance.raffle_name,
-                'new_state': updated_instance.raffle_state.state_raffle_name
+                'message': result['message'],
+                'raffle_id': instance.id,
+                'raffle_name': instance.raffle_name,
+                'tickets_refunded': result['tickets_refunded'],
+                'total_amount_refunded': str(result['total_amount_refunded']),
+                'cancellation_type': result['cancellation_type'],
+                'new_state': instance.raffle_state.state_raffle_name if instance.raffle_state else None
             }, status=status.HTTP_200_OK)
             
         except Exception as e:
@@ -212,4 +217,88 @@ class RaffleUserListView(generics.ListAPIView):
             return int(user_id) == self.request.user.id
         except (ValueError, TypeError):
             return False
+
+
+class AdminRaffleCancelView(generics.UpdateAPIView):
+    """
+    Vista EXCLUSIVA para administradores
+    Permite cancelar rifas con reembolsos por razones administrativas
+    """
+    queryset = Raffle.objects.all()
+    permission_classes = [IsAdminUser]  # Solo administradores
+    lookup_field = 'pk'
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Cancelación administrativa con reembolsos
+        """
+        instance = self.get_object()
+        admin_reason = request.data.get('admin_reason', 'Cancelación administrativa')
         
+        try:
+            # Usar método administrativo del modelo
+            result = instance.cancel_raffle_and_refund(admin_reason)
+            
+            return Response({
+                'message': result['message'],
+                'raffle_id': instance.id,
+                'raffle_name': instance.raffle_name,
+                'tickets_refunded': result['tickets_refunded'],
+                'total_amount_refunded': str(result['total_amount_refunded']),
+                'admin_reason': result['admin_reason'],
+                'was_previously_drawn': result['was_previously_drawn'],
+                'cancellation_date': result['cancellation_date'],
+                'cancelled_by_admin': request.user.email,
+                'raffle_status': result['raffle_status']
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'error': f'Error en cancelación administrativa: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class RaffleDrawView(generics.UpdateAPIView):
+    """
+    Vista para ejecutar sorteo de rifas
+    Solo el organizador de la rifa puede ejecutar el sorteo
+    """
+    queryset = Raffle.objects.all()
+    serializer_class = RaffleDrawSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'pk'
+    
+    def update(self, request, *args, **kwargs):
+        """Ejecutar sorteo de la rifa"""
+        instance = self.get_object()
+        
+        # Verificar que el usuario sea el organizador
+        if instance.raffle_created_by != request.user:
+            return Response({
+                'error': 'Solo el organizador puede ejecutar el sorteo'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            raffle, result = serializer.save()
+            
+            return Response({
+                'message': 'Sorteo ejecutado exitosamente',
+                'draw_results': result
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'error': f'Error al ejecutar sorteo: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AvailableNumbersView(generics.RetrieveAPIView):
+    """
+    Vista pública para obtener números disponibles de una rifa
+    """
+    queryset = Raffle.objects.all()
+    serializer_class = AvailableNumbersSerializer
+    permission_classes = [AllowAny]
+    lookup_field = 'pk'

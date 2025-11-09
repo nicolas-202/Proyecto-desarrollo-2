@@ -22,8 +22,8 @@ class PaymentMethodSerializer(serializers.ModelSerializer):
     card_number = serializers.CharField(
         write_only=True, 
         max_length=19,
-        required=True,  # Campo obligatorio
-        allow_blank=False,  # No permitir vacío
+        required=False,  # No obligatorio para actualizaciones parciales
+        allow_blank=False,  # No permitir vacío cuando se proporciona
         help_text="Número de tarjeta (será hasheado automáticamente)"
     )
     
@@ -54,12 +54,12 @@ class PaymentMethodSerializer(serializers.ModelSerializer):
         )
         extra_kwargs = {
             'paymenth_method_holder_name': {
-                'required': True,
+                'required': False,  # No obligatorio para actualizaciones parciales
                 'allow_blank': False,
                 'help_text': 'Nombre del titular de la tarjeta'
             },
             'paymenth_method_expiration_date': {
-                'required': True,
+                'required': False,  # No obligatorio para actualizaciones parciales
                 'help_text': 'Fecha de expiración (YYYY-MM-DD)'
             }
         }
@@ -111,12 +111,13 @@ class PaymentMethodSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """Validaciones a nivel de objeto"""
-        # Verificar que todos los campos obligatorios estén presentes
-        required_fields = ['card_number', 'paymenth_method_holder_name', 'paymenth_method_expiration_date']
-        
-        for field in required_fields:
-            if field not in data or not data[field]:
-                raise serializers.ValidationError(f"El campo {field} es obligatorio.")
+        # Solo verificar campos obligatorios en creación, no en actualización
+        if not self.instance:  # Es creación
+            required_fields = ['card_number', 'paymenth_method_holder_name', 'paymenth_method_expiration_date']
+            
+            for field in required_fields:
+                if field not in data or not data[field]:
+                    raise serializers.ValidationError(f"El campo {field} es obligatorio.")
         
         return data
 

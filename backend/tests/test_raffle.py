@@ -62,6 +62,10 @@ class RaffleAPITestCase(APITestCase):
             state_raffle_name="Inactivo", 
             state_raffle_code="INA"
         )
+        cls.cancelled_state = StateRaffle.objects.create(
+            state_raffle_name="Cancelado", 
+            state_raffle_code="CAN"
+        )
     
     def setUp(self):
         """Configuración antes de cada test"""
@@ -225,7 +229,7 @@ class RaffleAPITestCase(APITestCase):
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         raffle.refresh_from_db()
-        self.assertEqual(raffle.raffle_state, self.inactive_state)
+        self.assertEqual(raffle.raffle_state, self.cancelled_state)
     
     def test_list_user_raffles(self):
         """Test listar rifas de un usuario específico"""
