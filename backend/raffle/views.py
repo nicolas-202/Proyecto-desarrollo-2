@@ -265,18 +265,12 @@ class RaffleDrawView(generics.UpdateAPIView):
     """
     queryset = Raffle.objects.all()
     serializer_class = RaffleDrawSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminUser]
     lookup_field = 'pk'
     
     def update(self, request, *args, **kwargs):
         """Ejecutar sorteo de la rifa"""
         instance = self.get_object()
-        
-        # Verificar que el usuario sea el organizador
-        if instance.raffle_created_by != request.user:
-            return Response({
-                'error': 'Solo el organizador puede ejecutar el sorteo'
-            }, status=status.HTTP_403_FORBIDDEN)
         
         try:
             serializer = self.get_serializer(instance, data=request.data, partial=True)

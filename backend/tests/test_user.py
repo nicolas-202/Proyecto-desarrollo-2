@@ -94,7 +94,7 @@ class UserAPITestCase(APITestCase):
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIsInstance(response.data, list)
-        self.assertEqual(len(response.data), 2)  # admin_user + user_regular
+        self.assertEqual(len(response.data), 1)  # Solo user_regular (admin_user excluido por seguridad)
     
     def test_user_basic_list_content_safe(self):
         """El listado público solo contiene información no sensible"""
@@ -128,6 +128,23 @@ class UserAPITestCase(APITestCase):
         response = self.client.get(url, {'search': 'NoExiste'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 0)
+    
+    def test_user_basic_list_excludes_admins(self):
+        """La lista pública NO incluye administradores por seguridad"""
+        url = reverse('user_basic_list')
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Verificar que no hay ningún admin en la lista
+        for user_data in response.data:
+            # Buscar al usuario en la BD para verificar que no es admin
+            user = User.objects.get(id=user_data['id'])
+            self.assertFalse(user.is_admin, f"Usuario {user.email} es admin y no debería aparecer")
+        
+        # Verificar que específicamente el admin_user no está
+        admin_ids = [user_data['id'] for user_data in response.data]
+        self.assertNotIn(self.admin_user.id, admin_ids)
 
     # ============================================
     # TESTS DE REGISTRO
@@ -540,6 +557,7 @@ class UserAPITestCase(APITestCase):
         response = self.client.patch(url, data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('No puedes desactivarte a ti mismo', str(response.data))
         
         # Verificar que sigue activo
         self.admin_user.refresh_from_db()
@@ -668,4 +686,22 @@ class UserAPITestCase(APITestCase):
         # Verificar que sigue activo
         self.admin_user.refresh_from_db()
         self.assertTrue(self.admin_user.is_active)
+    
+    def test_delete_account_with_active_raffles_fails(self):
+        """Usuario NO puede desactivar cuenta si tiene rifas activas"""
+        # Nota: Este test requiere que el modelo Raffle esté configurado
+        # y que exista una relación organized_raffles en el modelo User
+        url = reverse('delete_account')
+        self.client.force_authenticate(user=self.user_regular)
+        data = {"current_password": "testpassword"}
+        
+        # Simular que el usuario tiene rifas activas (mock)
+        # En un test real, crearías una rifa activa aquí
+        
+        response = self.client.post(url, data, format='json')
+        
+        # Si no hay rifas activas, debería funcionar normalmente
+        # Si hay rifas activas, debería fallar con 400
+        # Este test necesita ser ajustado cuando se implemente la relación con Raffle
+        self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST])
 

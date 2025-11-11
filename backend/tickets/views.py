@@ -1,6 +1,7 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from permissions.permissions import IsAdminUser
 from django.shortcuts import get_object_or_404
 from .models import Ticket
 from .serializer import (
@@ -154,7 +155,7 @@ class UserTicketHistoryView(generics.ListAPIView):
     Permite a los usuarios ver su propio historial o a los admins ver cualquier historial
     """
     serializer_class = TicketListSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdminUser]
     
     def get_queryset(self):
         """Retorna tickets del usuario especificado con validaciones de permisos"""
