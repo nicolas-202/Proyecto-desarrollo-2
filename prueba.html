@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RifaPlus - Tu plataforma de rifas favorita 🎉</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #F4A261 0%, #FF6B35 100%);
+            min-height: 100vh;
+            color: #2C3E50;
+        }
+
+        /* Header y Navegación */
+        .header {
+            background: #FFFFFF;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #FF6B35 0%, #6A4C93 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            cursor: pointer;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .nav-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-weight: 500;
+            color: #2C3E50;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: #F8F9FA;
+            color: #FF6B35;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #FF6B35 0%, #F4A261 100%);
+            color: white;
+            border: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #6A4C93;
+            border: 2px solid #6A4C93;
+            padding: 0.7rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #6A4C93;
+            color: white;
+        }
+
+        /* Notificaciones Badge */
+        .notification-badge {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .badge-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #2ECC71;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        /* Módulos Contenedores */
+        .module-container {
+            display: none;
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            animation: fadeIn 0.3s;
+        }
+
+        .module-container.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Tarjetas de Rifa */
+        .rifa-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .rifa-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+
+        .rifa-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .rifa-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #FF6B35 0%, #F4A261 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+
+        .rifa-content {
+            padding: 1.5rem;
+        }
+
+        .rifa-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #2C3E50;
+        }
+
+        .rifa-price {
+            color: #FF6B35;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+
+        .rifa-date {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Filtros */
+        .filters {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 250px;
+            padding: 0.8rem;
+            border: 2px solid #F8F9FA;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #FF6B35;
+        }
+
+        /* Formularios */
+        .form-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 500px;
+            margin: 2rem auto;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #2C3E50;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #F8F9FA;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #FF6B35;
+        }
+
+        /* Detalles de Rifa */
+        .rifa-details {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .numbers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 0.5rem;
+            margin: 2rem 0;
+        }
+
+        .number-item {
+            padding: 1rem;
+            border: 2px solid #F8F9FA;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .number-item:hover {
+            background: #F8F9FA;
+        }
+
+        .number-item.selected {
+            background: #FF6B35;
+            color: white;
+            border-color: #FF6B35;
+        }
+
+        .number-item.sold {
+            background: #F8F9FA;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        /* Perfil de Usuario */
+        .profile-header {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6A4C93 0%, #5B2C6F 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+        }
+
+        .profile-info h2 {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Notificaciones Panel */
+        .notifications-panel {
+            position: fixed;
+            top: 70px;
+            right: 2rem;
+            width: 350px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            max-height: 500px;
+            overflow-y: auto;
+            display: none;
+            z-index: 999;
+        }
+
+        .notifications-panel.active {
+            display: block;
+        }
+
+        .notification-item {
+            padding: 1rem;
+            border-bottom: 1px solid #F8F9FA;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .notification-item:hover {
+            background: #F8F9FA;
+        }
+
+        .notification-item.unread {
+            background: #FFF4ED;
+        }
+
+        /* Tabla de Configuración */
+        .config-table {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #F8F9FA;
+        }
+
+        th {
+            background: #F8F9FA;
+            font-weight: 600;
+        }
+
+        .action-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            margin: 0 0.25rem;
+        }
+
+        .edit-btn {
+            background: #6A4C93;
+            color: white;
+        }
+
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+        }
+
+        .tab {
+            padding: 0.8rem 1.5rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #6A4C93 0%, #5B2C6F 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Comentarios */
+        .comments-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .comment-item {
+            padding: 1rem;
+            border-bottom: 1px solid #F8F9FA;
+            margin-bottom: 1rem;
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .rating {
+            color: #F4A261;
+        }
+
+        /* Mensajes de estado */
+        .message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .message.success {
+            background: #d4f4dd;
+            color: #155724;
+            border: 1px solid #2ECC71;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        /* Breadcrumbs */
+        .breadcrumbs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-item {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb-item:hover {
+            color: #F4A261;
+        }
+
+        .breadcrumb-separator {
+            color: #F8F9FA;
+        }
+
+        /* Microcopias de orientación */
+        .guidance-text {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .guidance-text.highlight {
+            background: #FFF4ED;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #FF6B35;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="logo" onclick="app.navigate('index')">🎰 RifaPlus</div>
+            <div class="nav-menu">
+                <div class="nav-item active" onclick="app.navigate('index')">Descubre rifas</div>
+                <div class="nav-item" id="nav-my-raffles" style="display: none;" onclick="app.navigate('my-numbers')">Mis números</div>
+                <div class="nav-item" id="nav-create" style="display: none;" onclick="app.navigate('create-rifa')">Lanza tu rifa</div>
+                <div class="nav-item notification-badge" id="nav-notifications" style="display: none;" onclick="app.toggleNotifications()">
+                    🔔
+                    <span class="badge-count" id="notification-count">0</span>
+                </div>
+                <div id="nav-auth">
+                    <button class="btn-primary" onclick="app.navigate('auth')">Entrar</button>
+                </div>
+                <div id="nav-user" style="display: none;">
+                    <div class="nav-item" onclick="app.navigate('user', app.state.currentUser.id)">Mi perfil</div>
+                    <button class="btn-secondary" onclick="app.logout()">Salir</button>
+                </div>
+                <div class="nav-item" id="nav-config" style="display: none;" onclick="app.navigate('config')">⚙️ Configuración</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel de Notificaciones -->
+    <div class="notifications-panel" id="notifications-panel"></div>
+
+    <!-- Módulo: Index -->
+    <div id="index-module" class="module-container active">
+        <div class="breadcrumbs">
+            <div class="breadcrumb-item" onclick="app.navigate('index')">Inicio</div>
+        </div>
+        
+        <div class="guidance-text highlight">
+            <strong>🎯 ¿Listo para ganar increíbles premios?</strong> Explora todas las rifas disponibles y encuentra la que más te guste. ¡Cada número que compres te acerca más al premio!
+        </div>
+        
+        <div class="filters">
+            <input type="text" class="search-input" id="search-input" placeholder="Busca rifas por nombre o premio..." onkeyup="app.filterRifas()">
+            <select class="form-input" style="width: auto;" id="filter-status" onchange="app.filterRifas()">
+                <option value="all">Todas las rifas</option>
+                <option value="active">Rifas activas</option>
+                <option value="finished">Rifas finalizadas</option>
+            </select>
+        </div>
+        <div class="rifa-grid" id="rifas-grid"></div>
+    </div>
+
+    <!-- Módulo: Autenticación -->
+    <div id="auth-module" class="module-container">
+        <div class="breadcrumbs">
+            <div class="breadcrumb-item" onclick="app.navigate('index')">Inicio</div>
+            <div class="breadcrumb-separator">></div>
+            <div class="breadcrumb-item">Entrar o registrarse</div>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="app.switchAuthTab('login')">Entrar</div>
+            <div class="tab" onclick="app.switchAuthTab('register')">Crear cuenta</div>
+        </div>
+
+        <div id="login-tab" class="tab-content active">
+            <div class="form-container">
+                <h2 style="text-align: center; margin-bottom: 2rem;">¡Bienvenido de nuevo! 👋</h2>
+                <div class="guidance-text">Ingresa tus datos para acceder a tu cuenta y continuar con la diversión.</div>
+                <div id="login-message" class="message"></div>
+                <form onsubmit="app.login(event)">
+                    <div class="form-group">
+                        <label class="form-label">Tu correo electrónico</label>
+                        <input type="email" class="form-input" id="login-email" placeholder="ejemplo@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tu contraseña</label>
+                        <input type="password" class="form-input" id="login-password" placeholder="Escribe tu contraseña" required>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%;">Entrar a mi cuenta</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="register-tab" class="tab-content">
+            <div class="form-container">
+                <h2 style="text-align: center; margin-bottom: 2rem;">¡Únete a la comunidad! 🎉</h2>
+                <div class="guidance-text">Crea tu cuenta en solo unos pasos y comienza a disfrutar de todas las rifas.</div>
+                <div id="register-message" class="message"></div>
+                <form onsubmit="app.register(event)">
+                    <div class="form-group">
+                        <label class="form-label">Tu nombre completo</label>
+                        <input type="text" class="form-input" id="register-name" placeholder="Cómo te llamas" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tu correo electrónico</label>
+                        <input type="email" class="form-input" id="register-email" placeholder="ejemplo@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Crea una contraseña</label>
+                        <input type="password" class="form-input" id="register-password" placeholder="Mínimo 6 caracteres" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tu número de teléfono</label>
+                        <input type="tel" class="form-input" id="register-phone" placeholder="Para contactarte si ganas" required>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%;">Crear mi cuenta</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulo: Detalle de Rifa -->
+    <div id="rifa-module" class="module-container">
+        <div class="breadcrumbs" id="rifa-breadcrumbs"></div>
+        <div class="rifa-details" id="rifa-details"></div>
+    </div>
+
+    <!-- Módulo: Perfil de Usuario -->
+    <div id="user-module" class="module-container">
+        <div class="breadcrumbs">
+            <div class="breadcrumb-item" onclick="app.navigate('index')">Inicio</div>
+            <div class="breadcrumb-separator">></div>
+            <div class="breadcrumb-item">Perfil</div>
+        </div>
+        
+        <div class="profile-header" id="profile-header"></div>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="app.switchUserTab('rifas')">Mis rifas</div>
+            <div class="tab" onclick="app.switchUserTab('comments')">Opiniones</div>
+            <div class="tab" onclick="app.switchUserTab('edit')" id="edit-profile-tab" style="display: none;">Editar perfil</div>
+        </div>
+
+        <div id="user-rifas-tab" class="tab-content active">
+            <div class="guidance-text">Aquí puedes ver todas las rifas que has creado y su estado actual.</div>
+            <div class="rifa-grid" id="user-rifas-grid"></div>
+        </div>
+
+        <div id="user-comments-tab" class="tab-content">
+            <div class="guidance-text">Estas son las opiniones que otros usuarios han dejado sobre tus rifas.</div>
+            <div class="comments-section" id="user-comments"></div>
+            <div class="form-container" id="comment-form" style="display: none;">
+                <h3>¿Qué te pareció esta rifa?</h3>
+                <div class="guidance-text">Comparte tu experiencia para ayudar a otros usuarios.</div>
+                <form onsubmit="app.addComment(event)">
+                    <div class="form-group">
+                        <label class="form-label">¿Cómo calificarías esta rifa?</label>
+                        <select class="form-input" id="comment-rating">
+                            <option value="5">⭐⭐⭐⭐⭐ ¡Increíble!</option>
+                            <option value="4">⭐⭐⭐⭐ Muy buena</option>
+                            <option value="3">⭐⭐⭐ Buena</option>
+                            <option value="2">⭐⭐ Regular</option>
+                            <option value="1">⭐ No cumplió expectativas</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tu opinión</label>
+                        <textarea class="form-input" id="comment-text" rows="4" placeholder="Comparte tu experiencia con esta rifa..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Publicar mi opinión</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="user-edit-tab" class="tab-content">
+            <div class="form-container">
+                <h3>Actualiza tu información</h3>
+                <div class="guidance-text">Mantén tus datos actualizados para que podamos contactarte si ganas una rifa.</div>
+                <form onsubmit="app.updateProfile(event)">
+                    <div class="form-group">
+                        <label class="form-label">Tu nombre</label>
+                        <input type="text" class="form-input" id="edit-name" placeholder="Cómo te llamas">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tu correo electrónico</label>
+                        <input type="email" class="form-input" id="edit-email" placeholder="ejemplo@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tu teléfono</label>
+                        <input type="tel" class="form-input" id="edit-phone" placeholder="Para contactarte si ganas">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tu dirección</label>
+                        <input type="text" class="form-input" id="edit-address" placeholder="Para enviarte premios físicos">
+                    </div>
+                    <button type="submit" class="btn-primary">Guardar cambios</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulo: Mis Números Comprados -->
+    <div id="my-numbers-module" class="module-container">
+        <div class="breadcrumbs">
+            <div class="breadcrumb-item" onclick="app.navigate('index')">Inicio</div>
+            <div class="breadcrumb-separator">></div>
+            <div class="breadcrumb-item">Mis números</div>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="app.switchNumbersTab('purchased')">Números comprados</div>
+            <div class="tab" onclick="app.switchNumbersTab('won')">¡Mis premios! 🏆</div>
+        </div>
+
+        <div id="purchased-tab" class="tab-content active">
+            <div class="guidance-text">Aquí puedes ver todos los números que has comprado y el estado de cada rifa.</div>
+            <div id="purchased-numbers-content"></div>
+        </div>
+
+        <div id="won-tab" class="tab-content">
+            <div class="guidance-text">¡Celebra tus victorias! Aquí aparecerán todas las rifas que has ganado.</div>
+            <div id="won-rifas-content"></div>
+        </div>
+    </div>
+
+    <!-- Módulo: Crear Rifa -->
+    <div id="create-rifa-module" class="module-container">
+        <div class="breadcrumbs">
+            <div class="breadcrumb-item" onclick="app.navigate('index')">Inicio</div>
+            <div class="breadcrumb-separator">></div>
+            <div class="breadcrumb-item">Lanzar rifa</div>
+        </div>
+        
+        <div class="form-container" style="max-width: 700px;">
+            <h2 style="text-align: center; margin-bottom: 2rem;">¡Lanza tu propia rifa! 🚀</h2>
+            <div class="guidance-text">Completa la información de tu rifa para que otros usuarios puedan participar. ¡Es fácil y divertido!</div>
+            <div id="create-message" class="message"></div>
+            <form onsubmit="app.createRifa(event)">
+                <div class="form-group">
+                    <label class="form-label">¿Qué rifa vas a lanzar?</label>
+                    <input type="text" class="form-input" id="create-title" placeholder="Ej: iPhone 15 Pro Max" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Describe tu rifa</label>
+                    <textarea class="form-input" id="create-description" rows="4" placeholder="Cuéntanos más detalles sobre el premio y cómo funciona tu rifa..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">¿Qué premio ofreces?</label>
+                    <input type="text" class="form-input" id="create-prize" placeholder="Ej: iPhone 15 Pro Max 256GB" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Precio por número</label>
+                    <input type="number" class="form-input" id="create-price" min="1" placeholder="Ej: 50000" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">¿Cuántos números tendrá tu rifa?</label>
+                    <input type="number" class="form-input" id="create-quantity" min="10" max="1000" value="100" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">¿Cuándo será el sorteo?</label>
+                    <input type="datetime-local" class="form-input" id="create-date" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">¿Cómo se elegirá al ganador?</label>
+                    <select class="form-input" id="create-method">
+                        <option value="random">Aleatorio (lo decide nuestro sistema)</option>
+                        <option value="lottery">Basado en lotería nacional</option>
+                        <option value="manual">Selección manual</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%;">¡Lanzar mi rifa!</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Módulo: Configuración (Admin) -->
+    <div id="config-module" class="module-container">
+        <div class="breadcrumbs">
+            <div class="breadcrumb-item" onclick="app.navigate('index')">Inicio</div>
+            <div class="breadcrumb-separator">></div>
+            <div class="breadcrumb-item">Configuración</div>
+        </div>
+        
+        <h2 style="color: white; margin-bottom: 2rem;">Configuración del sistema</h2>
+        <div class="guidance-text" style="color: white;">Administra las opciones generales de la plataforma para todos los usuarios.</div>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="app.switchConfigTab('genres')">Géneros</div>
+            <div class="tab" onclick="app.switchConfigTab('documents')">Tipos de documento</div>
+            <div class="tab" onclick="app.switchConfigTab('methods')">Métodos de selección</div>
+        </div>
+
+        <div id="config-genres-tab" class="tab-content active">
+            <div class="config-table">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>Géneros</h3>
+                    <button class="btn-primary" onclick="app.addConfigItem('genre')">+ Agregar género</button>
+                </div>
+                <table id="genres-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="config-documents-tab" class="tab-content">
+            <div class="config-table">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>Tipos de documento</h3>
+                    <button class="btn-primary" onclick="app.addConfigItem('document')">+ Agregar tipo</button>
+                </div>
+                <table id="documents-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Abreviatura</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="config-methods-tab" class="tab-content">
+            <div class="config-table">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>Métodos de selección</h3>
+                    <button class="btn-primary" onclick="app.addConfigItem('method')">+ Agregar método</button>
+                </div>
+                <table id="methods-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
