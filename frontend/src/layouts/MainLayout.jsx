@@ -3,15 +3,7 @@ import Header from "../components/layout/Header";
 
 function MainLayout() {
     return (
-        <div style={{
-            fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-            background: "linear-gradient(135deg, #F4A261 0%, #FF6B35 100%)",
-            minHeight: "100vh",
-            color: "#2C3E50",
-            width: "100%",
-            margin: 0,
-            padding: 0
-        }}>
+        <div className="body-div">
             <Header />
             
             {/* Panel de notificaciones (como en tu prototipo) */}

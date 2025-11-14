@@ -4,49 +4,62 @@ import { API_BASE_URL } from '../config';
 
 function Home() {
   const [rifas, setRifas] = useState([]);
+  const [prizeTypes, setPrizeTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [prizeTypeFilter, setPrizeTypeFilter] = useState('all');
 
   useEffect(() => {
-    const fetchRifas = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/raffle/list/`);
-        setRifas(response.data);
+        // Cargar rifas y tipos de premio en paralelo
+        const [rifasResponse, prizeTypesResponse] = await Promise.all([
+          axios.get(`${API_BASE_URL}/raffle/list/`),
+          axios.get(`${API_BASE_URL}/raffle-info/prizetype/`)
+        ]);
+        
+        setRifas(rifasResponse.data);
+        setPrizeTypes(prizeTypesResponse.data);
       } catch (err) {
-        setError('Error al cargar las rifas');
+        setError('Error al cargar los datos');
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchRifas();
+    fetchData();
   }, []);
 
-  const getRifaIcon = (prize) => {
-    if (!prize) return '🎁';
-    const lowerPrize = prize.toString().toLowerCase();
-    if (lowerPrize.includes('iphone') || lowerPrize.includes('celular') || lowerPrize.includes('telefono')) return '📱';
-    if (lowerPrize.includes('playstation') || lowerPrize.includes('xbox') || lowerPrize.includes('consola')) return '🎮';
-    if (lowerPrize.includes('laptop') || lowerPrize.includes('computador') || lowerPrize.includes('pc')) return '💻';
-    if (lowerPrize.includes('carro') || lowerPrize.includes('auto') || lowerPrize.includes('vehiculo')) return '🚗';
-    if (lowerPrize.includes('moto') || lowerPrize.includes('motocicleta')) return '🏍️';
-    if (lowerPrize.includes('viaje') || lowerPrize.includes('vacaciones')) return '✈️';
-    if (lowerPrize.includes('dinero') || lowerPrize.includes('efectivo') || lowerPrize.includes('cash')) return '💰';
-    if (lowerPrize.includes('tv') || lowerPrize.includes('television')) return '📺';
-    if (lowerPrize.includes('bicicleta') || lowerPrize.includes('bici')) return '🚲';
+  const getRifaIcon = (rifa) => {
+    // Si la rifa tiene imagen, usarla
+    if (rifa.raffle_image) {
+      return <img 
+        src={rifa.raffle_image} 
+        alt={rifa.raffle_name}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover'
+        }}
+      />;
+    }
     return '🎁';
   };
 
   const filteredRifas = rifas.filter(rifa => {
-    const matchesSearch = rifa.raffle_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         rifa.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || 
-                         (statusFilter === 'active' && new Date(rifa.draw_date) > new Date()) ||
-                         (statusFilter === 'finished' && new Date(rifa.draw_date) <= new Date());
-    return matchesSearch && matchesStatus;
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = searchTerm === '' || 
+                        rifa.raffle_name?.toLowerCase().includes(searchLower) || 
+                        rifa.raffle_description?.toLowerCase().includes(searchLower) ||
+                        rifa.raffle_prize_type?.prize_type_name?.toLowerCase().includes(searchLower);
+
+    const matchesPrizeType = prizeTypeFilter === 'all' || 
+                        rifa.raffle_prize_type?.id === parseInt(prizeTypeFilter);
+    
+    return matchesSearch && matchesPrizeType;
   });
 
   if (loading) return (
@@ -82,19 +95,22 @@ function Home() {
         <input 
           type="text" 
           className="search-input" 
-          placeholder="Busca rifas por nombre o premio..." 
+          placeholder="Busca rifas por nombre, descripción o tipo de premio..." 
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
         <select 
           className="form-input" 
-          style={{width: 'auto'}} 
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          style={{width: 'auto', minWidth: '150px'}} 
+          value={prizeTypeFilter}
+          onChange={(e) => setPrizeTypeFilter(e.target.value)}
         >
-          <option value="all">Todas las rifas</option>
-          <option value="active">Rifas activas</option>
-          <option value="finished">Rifas finalizadas</option>
+          <option value="all">Todos los premios</option>
+          {prizeTypes.map(prizeType => (
+            <option key={prizeType.id} value={prizeType.id}>
+              {prizeType.prize_type_name}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -117,7 +133,7 @@ function Home() {
             <div key={rifa.id} className="rifa-card">
               {/* Imagen de la rifa */}
               <div className="rifa-image">
-                {getRifaIcon(rifa.prize_description || rifa.raffle_name)}
+                {getRifaIcon(rifa)}
               </div>
               
               {/* Contenido de la rifa */}
@@ -126,14 +142,18 @@ function Home() {
                 <p style={{marginBottom: '0.5rem', fontSize: '0.9rem', color: '#666'}}>
                   {rifa.description}
                 </p>
-                <div className="rifa-price">
-                  ${rifa.raffle_number_price?.toLocaleString()}
+                <div className="rifa-prize">
+                  Precio ticket:
+                  ${rifa.raffle_number_prize?.toLocaleString()}
                 </div>
-                <div style={{marginBottom: '0.5rem', fontSize: '0.9rem', color: '#666'}}>
-                  <strong>Premio:</strong> ${rifa.prize_amount?.toLocaleString()}
+                <div className="rifa-card-content">
+                  <strong>Premio:</strong> ${rifa.raffle_prize_amount?.toLocaleString()}
+                </div>
+                <div className="rifa-card-content">
+                  <strong>Creada por: </strong> {rifa.raffle_created_by?.full_name?.toLocaleString()}
                 </div>
                 <div className="rifa-date">
-                  Sorteo: {new Date(rifa.draw_date).toLocaleDateString('es-ES', {
+                  Sorteo: {new Date(rifa.raffle_draw_date).toLocaleDateString('es-ES', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',

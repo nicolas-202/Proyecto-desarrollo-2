@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.utils import timezone
 from .models import Raffle
+from user.serializer import UserBasicSerializer
 from raffleInfo.serializer import PrizeTypeSerializer, StateRaffleSerializer
 from django.core.exceptions import ValidationError 
 
@@ -19,9 +20,9 @@ class RaffleCreateSerializer(serializers.ModelSerializer):
             'raffle_draw_date',
             'raffle_minimum_numbers_sold',
             'raffle_number_amount',
-            'raffle_number_price',
+            'raffle_number_prize',
             'raffle_image',
-            'raffle_price_amount',
+            'raffle_prize_amount',
             'raffle_prize_type',
         ]
 
@@ -51,7 +52,7 @@ class RaffleListSerializer(serializers.ModelSerializer):
     """
     raffle_prize_type = PrizeTypeSerializer(read_only=True)
     raffle_state = StateRaffleSerializer(read_only=True)
-    
+    raffle_created_by = UserBasicSerializer(read_only=True)
     class Meta:
         model = Raffle
         fields = [
@@ -61,11 +62,12 @@ class RaffleListSerializer(serializers.ModelSerializer):
             'raffle_draw_date',
             'raffle_minimum_numbers_sold',
             'raffle_number_amount',
-            'raffle_number_price',
+            'raffle_number_prize',
             'raffle_image',
-            'raffle_price_amount',
+            'raffle_prize_amount',
             'raffle_prize_type',
             'raffle_state',
+            'raffle_created_by',
         ]
 
 class RaffleUpdateSerializer(serializers.ModelSerializer):
@@ -257,7 +259,7 @@ class AvailableNumbersSerializer(serializers.ModelSerializer):
             'id',
             'raffle_name',
             'raffle_number_amount',
-            'raffle_number_price',
+            'raffle_number_prize',
             'available_numbers',
             'numbers_sold', 
             'numbers_available'

@@ -41,7 +41,7 @@ class UserBasicListViewSet(generics.ListAPIView):
     serializer_class = UserBasicSerializer
     permission_classes = [AllowAny]  # Acceso público
     filter_backends = [filters.SearchFilter]
-    search_fields = ['first_name', 'last_name', 'email']  # Búsqueda por nombre o email
+    search_fields = ['first_name', 'last_name', 'email', 'id']  # Búsqueda por nombre o email
 
     def get_queryset(self):
         """
@@ -50,7 +50,6 @@ class UserBasicListViewSet(generics.ListAPIView):
         """
         return User.objects.filter(
             is_active=True,
-            is_admin=False  # No mostrar admins en la lista pública
         ).select_related(
             # Optimización: no necesitamos relaciones para info básica
         ).order_by('first_name', 'last_name')

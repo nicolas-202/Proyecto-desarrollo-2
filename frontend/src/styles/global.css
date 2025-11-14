@@ -10,13 +10,16 @@ html, body {
     overflow-x: hidden;
     margin: 0;
     padding: 0;
+    background: linear-gradient(135deg, #F4A261 0%, #FF6B35 100%);
+    background-attachment: fixed;
 }
 
-body {
+.body-div {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #F4A261 0%, #FF6B35 100%);
     min-height: 100vh;
     color: #2C3E50;
+    width: 100%;
+    position: relative;
 }
 
 #root {
@@ -45,14 +48,11 @@ body {
 .logo {
     font-size: 1.8rem;
     font-weight: bold;
-    color: #FF6B35; /* Fallback color */
     background: linear-gradient(135deg, #FF6B35 0%, #6A4C93 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     cursor: pointer;
-    user-select: none;
-    display: inline-block;
 }
 
         .nav-menu {
@@ -182,21 +182,31 @@ body {
         }
 
         .rifa-title {
-            font-size: 1.3rem;
+            font-size: 1.5rem;
             font-weight: bold;
-            margin-bottom: 0.5rem;
-            color: #2C3E50;
-        }
-
-        .rifa-price {
+            margin-bottom: 1rem;
+            
             color: #FF6B35;
             font-size: 1.5rem;
+        }
+
+        .rifa-card-content {
+            font-size: 1rem;
+            color: #555;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .rifa-prize {
+            color: #2C3E50;
+            font-size: 1.3rem;
             font-weight: bold;
             margin: 0.5rem 0;
         }
 
         .rifa-date {
             color: #666;
+            padding-top: 1rem;
             font-size: 0.9rem;
         }
 
