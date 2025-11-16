@@ -1,14 +1,29 @@
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 function Header() {
   const navigate = useNavigate();
-  // TODO: Aquí irá el estado de autenticación cuando lo implementemos
-  const isAuthenticated = false;
-  const isAdmin = false;
+  const { user, isAuthenticated, logout, isAdmin, isLoading } = useAuth();
 
   const handleNavigate = (path) => {
     navigate(path);
   };
+
+  // Mostrar loading si aún se está verificando la autenticación
+  if (isLoading) {
+    return (
+      <div className="header">
+        <div className="header-content">
+          <div className="logo" onClick={() => handleNavigate('/')}>
+            🎰 RifaPlus
+          </div>
+          <div style={{ color: 'white', fontSize: '0.9rem' }}>
+            Cargando...
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="header">
@@ -27,7 +42,7 @@ function Header() {
             Descubre rifas
           </div>
 
-          {/* Mostrar solo si está autenticado */}
+          {/* Menú solo para usuarios autenticados */}
           {isAuthenticated && (
             <>
               <div 
@@ -54,8 +69,19 @@ function Header() {
             </>
           )}
 
-          {/* Botones de autenticación */}
+          {/* Configuración (solo para administradores) */}
+          {isAuthenticated && isAdmin && (
+            <div 
+              className="nav-item" 
+              onClick={() => handleNavigate('/config')}
+            >
+              ⚙️ Configuración
+            </div>
+          )}
+
+          {/* Sección de autenticación - Botón Entrar O Menú de usuario */}
           {!isAuthenticated ? (
+            // Usuario no autenticado - Mostrar botón Entrar
             <div id="nav-auth">
               <button 
                 className="btn-primary" 
@@ -65,29 +91,23 @@ function Header() {
               </button>
             </div>
           ) : (
+            // Usuario autenticado - Mostrar menú de usuario
             <div id="nav-user">
               <div 
                 className="nav-item" 
                 onClick={() => handleNavigate('/profile')}
               >
-                Mi perfil
+                👤 {user?.first_name || 'Mi perfil'}
               </div>
               <button 
                 className="btn-secondary" 
-                onClick={() => {/* TODO: logout */}}
+                onClick={() => {
+                  logout();
+                  handleNavigate('/');
+                }}
               >
                 Salir
               </button>
-            </div>
-          )}
-
-          {/* Configuración (solo admin) */}
-          {isAdmin && (
-            <div 
-              className="nav-item" 
-              onClick={() => handleNavigate('/config')}
-            >
-              ⚙️ Configuración
             </div>
           )}
         </div>

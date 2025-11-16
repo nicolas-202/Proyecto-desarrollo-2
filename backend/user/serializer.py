@@ -219,6 +219,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['email'] = user.email
         token['first_name'] = user.first_name
         token['is_staff'] = user.is_staff
+        token['is_admin'] = user.is_admin
         return token
     
     def validate(self, attrs):
@@ -229,6 +230,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'first_name': self.user.first_name,
             'last_name': self.user.last_name,
             'is_staff': self.user.is_staff,
+            'is_admin': self.user.is_admin,
             'groups': [group.name for group in self.user.groups.all()]
         }
         return data
