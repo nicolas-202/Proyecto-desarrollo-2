@@ -110,6 +110,12 @@ Accede a la dirección local indicada (por ejemplo, `http://localhost:8000` o `h
 
 ## Si ya tienes el proyecto instalado
 
+Debes sincronizar tu fork con el repositorio original.
+Luego debes de traer los cambios a tu repositorio local con el siguiente comando.
+
+```powershell
+git pull origin main
+```
 Debes instalar de nuevo todas las dependencias en el backend y en el frontend
 
 En la carpeta backend ejecutas: 
