@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
+    'core',  # Agregado para comandos de management
     'location',
     'userInfo',
     'user',

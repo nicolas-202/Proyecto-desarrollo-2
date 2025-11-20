@@ -146,6 +146,13 @@ Se deben de hacer las migraciones de nuevo, ejecutando estos comandos
 python manage.py makemigrations location userInfo user raffleInfo raffle tickets
 python manage.py migrate
 ```
+Se debe de poblar la base de datos con el seeder 
+
+```powershell
+python manage.py seed_data
+```
+
+
 Probar la inicialización de la aplicación con
   ```powershell
   python manage.py runserver

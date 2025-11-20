@@ -135,8 +135,10 @@ class Raffle(models.Model):
             if self.raffle_start_date >= self.raffle_draw_date:
                 errors.append('La fecha de inicio debe ser anterior a la fecha del sorteo')
         
+        # Solo validar fecha del pasado si la rifa está activa y no ha sido procesada
         if (self.pk and self.raffle_draw_date and self.raffle_draw_date < timezone.now() 
-            and not self.raffle_winner):  # Permitir guardar si ya tiene ganador (rifa sorteada)
+            and not self.raffle_winner and self._is_in_active_state() 
+            and not getattr(self, '_allow_past_date', False)):  # Flag para permitir cambios administrativos
             errors.append('La fecha del sorteo no puede ser en el pasado')
         
         if (self.raffle_minimum_numbers_sold and 
