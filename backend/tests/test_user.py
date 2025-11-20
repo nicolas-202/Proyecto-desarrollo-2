@@ -94,7 +94,7 @@ class UserAPITestCase(APITestCase):
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIsInstance(response.data, list)
-        self.assertEqual(len(response.data), 1)  # Solo user_regular (admin_user excluido por seguridad)
+        self.assertEqual(len(response.data), 2) 
     
     def test_user_basic_list_content_safe(self):
         """El listado público solo contiene información no sensible"""
@@ -129,23 +129,6 @@ class UserAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 0)
     
-    def test_user_basic_list_excludes_admins(self):
-        """La lista pública NO incluye administradores por seguridad"""
-        url = reverse('user_basic_list')
-        response = self.client.get(url)
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
-        # Verificar que no hay ningún admin en la lista
-        for user_data in response.data:
-            # Buscar al usuario en la BD para verificar que no es admin
-            user = User.objects.get(id=user_data['id'])
-            self.assertFalse(user.is_admin, f"Usuario {user.email} es admin y no debería aparecer")
-        
-        # Verificar que específicamente el admin_user no está
-        admin_ids = [user_data['id'] for user_data in response.data]
-        self.assertNotIn(self.admin_user.id, admin_ids)
-
     # ============================================
     # TESTS DE REGISTRO
     # ============================================

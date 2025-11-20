@@ -57,7 +57,7 @@ class Raffle(models.Model):
         verbose_name='Cantidad de números',
         help_text='Total de números disponibles para la rifa'
     )
-    raffle_number_prize = models.DecimalField(
+    raffle_number_price = models.DecimalField(
         max_digits=10, 
         decimal_places=2,
         validators=[MinValueValidator(Decimal('0.01'))],
@@ -289,7 +289,7 @@ class Raffle(models.Model):
         
         for ticket in tickets:
             # Devolver dinero al método de pago
-            ticket.payment_method.add_balance(self.raffle_number_prize)
+            ticket.payment_method.add_balance(self.raffle_number_price)
             total_refunded += self.raffle_number_price
             refunded_count += 1
         
@@ -428,7 +428,7 @@ class Raffle(models.Model):
             'winner_number': winner_ticket.number,
             'winner_payment_method': str(winner_ticket.payment_method.payment_method_type),
             'prize_type': self.raffle_prize_type.prize_type_name,
-            'prize_amount': str(self.raffle_price_amount),
+            'prize_amount': str(self.raffle_prize_amount),
             'tickets_sold': total_sold,
             'total_revenue': str(total_revenue),
             'raffle_status': self.status_display,

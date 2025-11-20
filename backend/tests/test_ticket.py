@@ -148,7 +148,7 @@ class TicketSystemTestCase(APITestCase):
             raffle_minimum_numbers_sold=2,
             raffle_number_amount=20,
             raffle_number_price=Decimal('10.00'),
-            raffle_price_amount=Decimal('180.00'),
+            raffle_prize_amount=Decimal('180.00'),
             raffle_prize_type=cls.prize_type,
             raffle_state=cls.state_active,
             raffle_created_by=cls.organizer

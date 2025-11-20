@@ -77,7 +77,7 @@ class RaffleAPITestCase(APITestCase):
             'raffle_minimum_numbers_sold': 10,
             'raffle_number_amount': 100,
             'raffle_number_price': '5.00',
-            'raffle_price_amount': '500.00',
+            'raffle_prize_amount': '500.00',
             'raffle_prize_type': self.prize_type.id,
         }
     
@@ -118,7 +118,7 @@ class RaffleAPITestCase(APITestCase):
             raffle_minimum_numbers_sold=10,
             raffle_number_amount=100,
             raffle_number_price=Decimal('5.00'),
-            raffle_price_amount=Decimal('500.00'),
+            raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
             raffle_created_by=self.user
@@ -138,7 +138,7 @@ class RaffleAPITestCase(APITestCase):
             raffle_minimum_numbers_sold=10,
             raffle_number_amount=100,
             raffle_number_price=Decimal('5.00'),
-            raffle_price_amount=Decimal('500.00'),
+            raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
             raffle_created_by=self.user
@@ -158,7 +158,7 @@ class RaffleAPITestCase(APITestCase):
             raffle_minimum_numbers_sold=10,
             raffle_number_amount=100,
             raffle_number_price=Decimal('5.00'),
-            raffle_price_amount=Decimal('500.00'),
+            raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
             raffle_created_by=self.user
@@ -196,7 +196,7 @@ class RaffleAPITestCase(APITestCase):
             raffle_minimum_numbers_sold=10,
             raffle_number_amount=100,
             raffle_number_price=Decimal('5.00'),
-            raffle_price_amount=Decimal('500.00'),
+            raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
             raffle_created_by=self.user
@@ -205,7 +205,7 @@ class RaffleAPITestCase(APITestCase):
         self.client.force_authenticate(user=other_user)
         
         response = self.client.patch(f'/api/v1/raffle/{raffle.id}/update/', 
-                                   {'raffle_name': 'Intentando cambiar'})
+                                    {'raffle_name': 'Intentando cambiar'})
         
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
     
@@ -217,7 +217,7 @@ class RaffleAPITestCase(APITestCase):
             raffle_minimum_numbers_sold=10,
             raffle_number_amount=100,
             raffle_number_price=Decimal('5.00'),
-            raffle_price_amount=Decimal('500.00'),
+            raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
             raffle_created_by=self.user
@@ -240,7 +240,7 @@ class RaffleAPITestCase(APITestCase):
             raffle_minimum_numbers_sold=10,
             raffle_number_amount=100,
             raffle_number_price=Decimal('5.00'),
-            raffle_price_amount=Decimal('500.00'),
+            raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
             raffle_created_by=self.user
@@ -298,7 +298,7 @@ class RaffleModelTestCase(APITestCase):
             raffle_minimum_numbers_sold=10,
             raffle_number_amount=100,
             raffle_number_price=Decimal('5.00'),
-            raffle_price_amount=Decimal('500.00'),
+            raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_created_by=self.user
         )
@@ -315,7 +315,7 @@ class RaffleModelTestCase(APITestCase):
             raffle_minimum_numbers_sold=10,
             raffle_number_amount=100,
             raffle_number_price=Decimal('5.00'),
-            raffle_price_amount=Decimal('500.00'),
+            raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_created_by=self.user
         )
@@ -333,7 +333,7 @@ class RaffleModelTestCase(APITestCase):
             raffle_minimum_numbers_sold=150,  # Mayor que raffle_number_amount
             raffle_number_amount=100,
             raffle_number_price=Decimal('5.00'),
-            raffle_price_amount=Decimal('500.00'),
+            raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_created_by=self.user
         )
@@ -351,7 +351,7 @@ class RaffleModelTestCase(APITestCase):
             raffle_minimum_numbers_sold=10,
             raffle_number_amount=100,
             raffle_number_price=Decimal('5.00'),
-            raffle_price_amount=Decimal('500.00'),
+            raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_created_by=self.user
         )
@@ -368,7 +368,7 @@ class RaffleModelTestCase(APITestCase):
             raffle_minimum_numbers_sold=10,
             raffle_number_amount=100,
             raffle_number_price=Decimal('5.00'),
-            raffle_price_amount=Decimal('500.00'),
+            raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
             raffle_created_by=self.user
@@ -387,7 +387,7 @@ class RaffleModelTestCase(APITestCase):
             raffle_minimum_numbers_sold=10,
             raffle_number_amount=100,
             raffle_number_price=Decimal('5.00'),
-            raffle_price_amount=Decimal('500.00'),
+            raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_created_by=self.user
         )
@@ -405,7 +405,7 @@ class RaffleModelTestCase(APITestCase):
             raffle_minimum_numbers_sold=10,
             raffle_number_amount=100,
             raffle_number_price=Decimal('5.00'),
-            raffle_price_amount=Decimal('500.00'),
+            raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
             raffle_created_by=self.user
