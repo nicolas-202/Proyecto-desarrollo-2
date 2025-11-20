@@ -129,14 +129,7 @@ npm install
 
 Se deben eliminar todas las migraciones corriendo el siguiente comando dentro de la carpeta backend
 ```powershell
-$apps = @("backend\location", "backend\raffle", "backend\raffleInfo", "backend\tickets", "backend\user", "backend\userInfo", "backend\interactions")
-foreach ($app in $apps) { 
-    $migrationPath = "$app\migrations"
-    if (Test-Path $migrationPath) { 
-        Get-ChildItem -Path $migrationPath -File -Filter "*.py" | Where-Object { $_.Name -ne "__init__.py" } | Remove-Item -Force
-        Write-Host "Migraciones eliminadas en $app"
-    }
-}
+$apps = @("location", "raffle", "raffleInfo", "tickets", "user", "userInfo", "interactions"); foreach ($app in $apps) { $migrationPath = "$app\migrations"; if (Test-Path $migrationPath) { $migrationFiles = Get-ChildItem -Path $migrationPath -File -Filter "*.py" | Where-Object { $_.Name -ne "__init__.py" }; if ($migrationFiles) { $migrationFiles | Remove-Item -Force; Write-Host "Migraciones eliminadas en $app ($($migrationFiles.Count) archivos)" } else { Write-Host "No hay migraciones para eliminar en $app" } } else { Write-Host "Directorio de migraciones no encontrado en $app" } }
 ```
 Se debe crear una nueva base de datos y cambiar el nombre de la base de datos por el nuevo en tu archivo .env 
 
@@ -162,3 +155,7 @@ En otra terminal ejecutar
   ```powershell
   npm run dev
   ```
+
+ingresas a la aplicación con
+email: admin@rifas.com
+contraseña: admin123
