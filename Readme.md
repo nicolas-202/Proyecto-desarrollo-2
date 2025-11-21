@@ -136,7 +136,7 @@ Se debe crear una nueva base de datos y cambiar el nombre de la base de datos po
 Se deben de hacer las migraciones de nuevo, ejecutando estos comandos 
 
 ```powershell
-python manage.py makemigrations location userInfo user raffleInfo raffle tickets
+python manage.py makemigrations location userInfo user interactions raffleInfo raffle tickets
 python manage.py migrate
 ```
 Se debe de poblar la base de datos con el seeder 
