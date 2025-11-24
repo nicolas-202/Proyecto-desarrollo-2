@@ -249,3 +249,33 @@ class Command(BaseCommand):
             )
         else:
             self.stdout.write(f'  ⚠️  Usuario admin ya existe: {admin_email}')
+
+    def create_admin_user_paymenth_method(self):
+        """Crear método de pago para el usuario administrador"""
+        self.stdout.write('Creando método de pago para el usuario administrador...')
+        try:
+            admin_user = User.objects.get(document_number='00000000')
+            debit_card_type = PaymentMethodType.objects.get(payment_method_type_code='TDEB')
+        except (User.DoesNotExist, PaymentMethodType.DoesNotExist) as e:
+            self.stdout.write(
+                self.style.ERROR(f'Error: No se pudo crear el método de pago: {e}')
+            )
+            return
+        if not admin_user.payment_methods.filter(payment_method_type=debit_card_type).exists():
+            # Crear método de pago con los campos obligatorios del modelo
+            from datetime import date, timedelta
+            from django.contrib.auth.hashers import make_password
+            card_number = '1234567890123456'
+            expiration = date.today() + timedelta(days=365*3)
+            admin_user.payment_methods.create(
+                payment_method_type=debit_card_type,
+                paymenth_method_holder_name='Administrador Sistema',
+                paymenth_method_card_number_hash=make_password(card_number),
+                paymenth_method_expiration_date=expiration,
+                last_digits=card_number[-4:],
+                payment_method_balance=1000000.00, # Saldo inicial para simulación
+                payment_method_is_active=True
+            )
+            self.stdout.write(
+                self.style.SUCCESS('  ✓ Método de pago creado para el usuario administrador')
+            )
