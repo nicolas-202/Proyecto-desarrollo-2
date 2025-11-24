@@ -128,8 +128,6 @@ class Raffle(models.Model):
     raffle_creator_payment_method = models.ForeignKey(
         PaymentMethod,
         on_delete=models.PROTECT,
-        blank=True,
-        null=True,
         related_name='raffles_created',
         verbose_name='Método de pago del creador',
         help_text='Método de pago donde se depositará el dinero recaudado'

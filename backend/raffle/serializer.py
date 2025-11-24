@@ -24,6 +24,7 @@ class RaffleCreateSerializer(serializers.ModelSerializer):
             'raffle_image',
             'raffle_prize_amount',
             'raffle_prize_type',
+            'raffle_creator_payment_method',
         ]
 
     def validate_raffle_draw_date(self, value):
