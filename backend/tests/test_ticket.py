@@ -154,6 +154,27 @@ class TicketSystemTestCase(APITestCase):
             raffle_created_by=cls.organizer
         )
 
+        # === USUARIO ADMINISTRADOR ===
+        cls.admin_user = User.objects.create_user(
+            email="admin@test.com",
+            password="adminpass",
+            first_name="Admin",
+            last_name="Cuenta",
+            gender=cls.gender,
+            document_type=cls.document_type,
+            document_number="0000000000",
+            city=cls.city
+        )
+        cls.admin_payment_method = PaymentMethod.objects.create(
+            user=cls.admin_user,
+            payment_method_type=cls.payment_method_type,
+            payment_method_balance=Decimal('0.00'),
+            paymenth_method_holder_name="Admin Cuenta",
+            paymenth_method_expiration_date=timezone.now().date() + timedelta(days=365)
+        )
+        cls.admin_payment_method.set_card_number('0000111122223333')
+        cls.admin_payment_method.save()
+
     def setUp(self):
         """Configuración antes de cada test"""
         # Limpiar tickets de tests anteriores
@@ -164,7 +185,9 @@ class TicketSystemTestCase(APITestCase):
         self.payment_method1.save()
         self.payment_method2.payment_method_balance = Decimal('500.00')
         self.payment_method2.save()
-
+        # Inicializar saldo admin para pruebas de sorteo y reembolso
+        self.admin_payment_method.payment_method_balance = Decimal('0.00')
+        self.admin_payment_method.save()
     # ==================== TESTS CRÍTICOS DE COMPRA ====================
     
     def test_ticket_purchase_success(self):
@@ -186,6 +209,8 @@ class TicketSystemTestCase(APITestCase):
         # Verificar descuento
         self.payment_method1.refresh_from_db()
         self.assertEqual(self.payment_method1.payment_method_balance, Decimal('990.00'))
+        self.admin_payment_method.refresh_from_db()
+        self.assertEqual(self.admin_payment_method.payment_method_balance, Decimal('10.00'))
 
     def test_ticket_purchase_insufficient_balance(self):
         """TEST CRÍTICO: Error por saldo insuficiente"""
@@ -348,66 +373,79 @@ class TicketSystemTestCase(APITestCase):
         # Con fecha futura, sin tickets
         can_draw, message = self.main_raffle.can_execute_draw()
         self.assertFalse(can_draw)
-        self.assertIn("está programado para", message)
-        
+        self.assertIn("No se alcanzó el mínimo", message)
+
         # Comprar tickets primero (mientras la rifa está activa)
         Ticket.purchase_ticket(self.participant1, self.main_raffle, 1, self.payment_method1)
         Ticket.purchase_ticket(self.participant2, self.main_raffle, 2, self.payment_method2)
-        
+
         # Ahora cambiar fecha al pasado - debe poder sortear
         past_date = timezone.now() - timedelta(minutes=1)
         Raffle.objects.filter(id=self.main_raffle.id).update(raffle_draw_date=past_date)
         self.main_raffle.refresh_from_db()
-        
+
         can_draw, message = self.main_raffle.can_execute_draw()
         self.assertTrue(can_draw)
         self.assertEqual(message, "Listo para sortear")
 
     def test_raffle_draw_success(self):
         """TEST CRÍTICO: Sorteo exitoso"""
+        # Inicializar saldo admin para cubrir el premio
+        self.admin_payment_method.payment_method_balance = Decimal('200.00')
+        self.admin_payment_method.save()
+
         # Comprar tickets para alcanzar mínimo
         Ticket.purchase_ticket(self.participant1, self.main_raffle, 1, self.payment_method1)
         Ticket.purchase_ticket(self.participant2, self.main_raffle, 2, self.payment_method2)
-        
+
         # Ajustar fecha para permitir sorteo (usando update para evitar validaciones)
         past_date = timezone.now() - timedelta(minutes=1)
         Raffle.objects.filter(id=self.main_raffle.id).update(raffle_draw_date=past_date)
         self.main_raffle.refresh_from_db()
-        
+
         # Verificar que está listo
         can_draw, message = self.main_raffle.can_execute_draw()
         self.assertTrue(can_draw)
-        
+        # Antes del sorteo: admin debe tener 220.00 si se vendieron dos tickets y tenía 200.00 inicial
+        self.admin_payment_method.refresh_from_db()
+        self.assertEqual(self.admin_payment_method.payment_method_balance, Decimal('220.00'))
+
         # Ejecutar sorteo
         result = self.main_raffle.execute_raffle_draw()
-        
+
         # Verificaciones críticas
         self.assertIn('message', result)
         self.assertIn('winner_user', result)
         self.assertIn('winner_number', result)
         self.assertEqual(result['tickets_sold'], 2)
-        
+        # Después del sorteo: admin debe tener 40.00 (pagó el premio de 180.00)
+        self.admin_payment_method.refresh_from_db()
+        self.assertEqual(self.admin_payment_method.payment_method_balance, Decimal('40.00'))
         # Verificar ganador asignado
         self.main_raffle.refresh_from_db()
         self.assertIsNotNone(self.main_raffle.raffle_winner)
-        
+
         # Verificar ticket ganador
         winning_tickets = Ticket.objects.filter(raffle=self.main_raffle, is_winner=True)
         self.assertEqual(winning_tickets.count(), 1)
 
     def test_cannot_draw_twice(self):
         """TEST CRÍTICO: No se puede sortear dos veces"""
+        # Inicializar saldo admin para cubrir el premio
+        self.admin_payment_method.payment_method_balance = Decimal('200.00')
+        self.admin_payment_method.save()
+
         # Preparar sorteo
         Ticket.purchase_ticket(self.participant1, self.main_raffle, 1, self.payment_method1)
         Ticket.purchase_ticket(self.participant2, self.main_raffle, 2, self.payment_method2)
-        
+
         past_date = timezone.now() - timedelta(minutes=1)
         Raffle.objects.filter(id=self.main_raffle.id).update(raffle_draw_date=past_date)
         self.main_raffle.refresh_from_db()
-        
+
         # Primer sorteo
         self.main_raffle.execute_raffle_draw()
-        
+
         # Intentar segundo sorteo
         can_draw, message = self.main_raffle.can_execute_draw()
         self.assertFalse(can_draw)
@@ -527,17 +565,58 @@ class TicketSystemTestCase(APITestCase):
         )
 
     def test_raffle_revenue_calculation(self):
-        """TEST CRÍTICO: Cálculo de revenue de la rifa"""
+        """TEST CRÍTICO: Cálculo de revenue de la rifa (solo ventas)"""
         # Estado inicial
         self.assertEqual(self.main_raffle.total_revenue, Decimal('0.00'))
-        
+
         # Después de vender tickets
         Ticket.purchase_ticket(self.participant1, self.main_raffle, 1, self.payment_method1)
         self.assertEqual(self.main_raffle.total_revenue, Decimal('10.00'))
-        
+
         Ticket.purchase_ticket(self.participant2, self.main_raffle, 2, self.payment_method2)
         self.assertEqual(self.main_raffle.total_revenue, Decimal('20.00'))
-        
+
         # Comprar más tickets
         Ticket.purchase_ticket(self.participant1, self.main_raffle, 3, self.payment_method1)
         self.assertEqual(self.main_raffle.total_revenue, Decimal('30.00'))
+
+    def test_admin_balance_after_raffle_draw(self):
+        """TEST: Verifica el saldo del admin después del sorteo"""
+        # Inicializar saldo admin para compra y sorteo
+        self.admin_payment_method.payment_method_balance = Decimal('200.00')
+        self.admin_payment_method.save()
+
+        # Comprar tickets
+        Ticket.purchase_ticket(self.participant1, self.main_raffle, 1, self.payment_method1)
+        Ticket.purchase_ticket(self.participant2, self.main_raffle, 2, self.payment_method2)
+        Ticket.purchase_ticket(self.admin_user, self.main_raffle, 3, self.admin_payment_method)
+
+        # Ajustar fecha para permitir sorteo
+        from django.utils import timezone
+        from datetime import timedelta
+        past_date = timezone.now() - timedelta(minutes=1)
+        from raffle.models import Raffle
+        Raffle.objects.filter(id=self.main_raffle.id).update(raffle_draw_date=past_date)
+        self.main_raffle.refresh_from_db()
+
+        # Ejecutar sorteo
+        result = self.main_raffle.execute_raffle_draw()
+
+        # Verificar saldo admin después de pagar el premio
+        self.admin_payment_method.refresh_from_db()
+        expected_balance = Decimal('230.00') - self.main_raffle.raffle_prize_amount
+        self.assertEqual(self.admin_payment_method.payment_method_balance, expected_balance)
+
+        # Verificaciones adicionales
+        self.assertIn('message', result)
+        self.assertIn('winner_user', result)
+        self.assertIn('winner_number', result)
+        self.assertEqual(result['tickets_sold'], 3)
+
+        # Verificar ganador asignado
+        self.main_raffle.refresh_from_db()
+        self.assertIsNotNone(self.main_raffle.raffle_winner)
+
+        # Verificar ticket ganador
+        winning_tickets = Ticket.objects.filter(raffle=self.main_raffle, is_winner=True)
+        self.assertEqual(winning_tickets.count(), 1)

@@ -5,6 +5,7 @@ from django.utils import timezone
 from decimal import Decimal
 from raffleInfo.models import PrizeType, StateRaffle
 from user.models import User
+from userInfo.models import PaymentMethod
 import os
 
 def raffle_image_upload_path(instance, filename):
@@ -115,6 +116,25 @@ class Raffle(models.Model):
         verbose_name='Ganador de la rifa'
     )
 
+    raffle_winner_ticket = models.ForeignKey(
+        'tickets.Ticket',
+        on_delete=models.RESTRICT,
+        blank=True,
+        null=True,
+        related_name='winning_raffle',
+        verbose_name='Ticket ganador de la rifa'
+    )
+
+    raffle_creator_payment_method = models.ForeignKey(
+        PaymentMethod,
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+        related_name='raffles_created',
+        verbose_name='Método de pago del creador',
+        help_text='Método de pago donde se depositará el dinero recaudado'
+    )
+
     class Meta:
         verbose_name = 'Rifa'
         verbose_name_plural = 'Rifas'
@@ -171,12 +191,12 @@ class Raffle(models.Model):
             
             if active_state:
                 self.raffle_state = active_state
-                print(f"Estado por defecto asignado: {active_state.state_raffle_name}")
+                # Estado por defecto asignado
             else:
-                print("Warning: No se encontró estado 'Activo' por defecto")
+                pass  # No se encontró estado 'Activo' por defecto
                 
         except Exception as e:
-            print(f"Error al asignar estado por defecto: {e}")
+            pass  # Error al asignar estado por defecto
 
     def _is_in_active_state(self): #Verifica si la rifa está en estado activo
         if not self.raffle_state:
@@ -277,46 +297,88 @@ class Raffle(models.Model):
     def sold_numbers(self):
         return list(self.sold_tickets.values_list('number', flat=True))
     
-    def cancel_raffle_and_refund(self, admin_reason=None): #Cancela la rifa y devuelve dinero - Para uso administrativo
+    def _get_admin_payment_method(self):
         """
-        Cancela la rifa y reembolsa a todos los participantes.
-        USO ADMINISTRATIVO: Para casos de incumplimiento, fraude o disputas.
-        
-        Permite cancelar incluso rifas ya sorteadas en casos excepcionales.
+        Obtiene el método de pago activo de la cuenta conjunta (usuario admin).
+        Lanza ValidationError si no existe usuario o método de pago.
         """
-        # Reembolsar todos los tickets de esta rifa
-        tickets = self.sold_tickets.all()
-        refunded_count = 0
-        total_refunded = 0
-        
-        for ticket in tickets:
-            # Devolver dinero al método de pago
-            ticket.payment_method.add_balance(self.raffle_number_price)
-            total_refunded += self.raffle_number_price
-            refunded_count += 1
-        
-        # Eliminar todos los tickets (soft delete implícito)
-        tickets.delete()
-        
-        # Cambiar estado a cancelado si existe
+        from user.models import User
+        from userInfo.models import PaymentMethod
+        admin_user = User.objects.filter(document_number="0000000000").first()
+        if not admin_user:
+            raise ValidationError("No existe usuario admin con identificación 0000000000 para cuenta conjunta")
+        admin_account = PaymentMethod.objects.filter(
+            user=admin_user,
+            payment_method_is_active=True
+        ).first()
+        if not admin_account:
+            raise ValidationError("No existe método de pago activo para admin")
+        return admin_account
+
+    def cancel_raffle_and_refund(self, admin_reason=None):
+        """
+        Cancela la rifa y reembolsa a todos los participantes. Idempotente.
+        """
         from raffleInfo.models import StateRaffle
+
+        # INICIO cancel_raffle_and_refund
+
+        cancelled_state = StateRaffle.objects.filter(
+            state_raffle_code__iexact='CAN'
+        ).first() or StateRaffle.objects.filter(
+            state_raffle_name__icontains='cancel'
+        ).first()
+
+        # Si ya está cancelada, retorna estado actual
+        if self.raffle_state == cancelled_state:
+            return {
+                'message': 'Rifa ya estaba cancelada',
+                'tickets_refunded': 0,
+                'total_amount_refunded': 0,
+                'admin_reason': admin_reason or 'No especificado',
+                'cancellation_date': timezone.now(),
+                'was_previously_drawn': bool(self.raffle_winner),
+                'raffle_status': self.status_display
+            }
+
+        # Obtener cuenta admin
         try:
-            cancelled_state = StateRaffle.objects.filter(
-                state_raffle_code__iexact='CAN'
-            ).first() or StateRaffle.objects.filter(
-                state_raffle_name__icontains='cancel'
-            ).first()
-            
-            if cancelled_state:
-                self.raffle_state = cancelled_state
-                self.save()
+            admin_account = self._get_admin_payment_method()
         except Exception as e:
-            print(f"Error al cambiar estado a cancelado: {e}")
-        
+            raise ValidationError(f"Error al obtener cuenta conjunta admin: {e}")
+
+        # Tickets a reembolsar
+        tickets = list(self.sold_tickets.all())
+        # Tickets vendidos: {len(tickets)}
+        refunded_count = 0
+        total_refunded = Decimal('0.00')
+
+        for ticket in tickets:
+            try:
+                admin_account.refresh_from_db()
+                if admin_account.has_sufficient_balance(self.raffle_number_price):
+                    admin_account.deduct_balance(self.raffle_number_price)
+                    ticket.payment_method.add_balance(self.raffle_number_price)
+                    total_refunded += self.raffle_number_price
+                    refunded_count += 1
+                # Si no hay saldo suficiente, simplemente no reembolsa ese ticket
+            except Exception as ex:
+                pass
+
+        # Eliminar tickets si había
+        if tickets:
+            self.sold_tickets.all().delete()
+
+        # Cambiar estado a cancelado si corresponde
+        if cancelled_state:
+            self.raffle_state = cancelled_state
+            self.save()
+
+        # FIN cancel_raffle_and_refund
         return {
             'message': 'Rifa cancelada y reembolsos procesados exitosamente',
             'tickets_refunded': refunded_count,
-            'total_amount_refunded': total_refunded,
+            'total_amount_refunded': float(total_refunded),
             'admin_reason': admin_reason or 'No especificado',
             'cancellation_date': timezone.now(),
             'was_previously_drawn': bool(self.raffle_winner),
@@ -325,52 +387,61 @@ class Raffle(models.Model):
     
     def soft_delete_and_refund(self, organizer_user):
         """
-        Soft delete de la rifa por parte del organizador.
-        Devuelve dinero a participantes y cancela la rifa.
-        
-        SOLO para uso del dueño/organizador de la rifa.
+        Soft delete de la rifa por parte del organizador. Idempotente.
         """
-        # Validar que el usuario sea el organizador
         if organizer_user != self.raffle_created_by:
             raise ValidationError("Solo el organizador puede cancelar la rifa")
-        
-        # No permitir cancelación si ya fue sorteada
         if self.raffle_winner:
             raise ValidationError("No se puede cancelar una rifa que ya fue sorteada")
-        
-        # Reembolsar todos los tickets
-        tickets = self.sold_tickets.all()
-        refunded_count = 0
-        total_refunded = 0
-        
-        for ticket in tickets:
-            # Devolver dinero al método de pago
-            ticket.payment_method.add_balance(self.raffle_number_price)
-            total_refunded += self.raffle_number_price
-            refunded_count += 1
-        
-        # Eliminar todos los tickets
-        tickets.delete()
-        
-        # Cambiar estado a cancelado
+
         from raffleInfo.models import StateRaffle
+
+        cancelled_state = StateRaffle.objects.filter(
+            state_raffle_code__iexact='CAN'
+        ).first() or StateRaffle.objects.filter(
+            state_raffle_name__icontains='cancel'
+        ).first()
+
+        if self.raffle_state == cancelled_state:
+            return {
+                'message': 'Rifa ya estaba cancelada',
+                'tickets_refunded': 0,
+                'total_amount_refunded': 0,
+                'organizer': organizer_user.email,
+                'cancellation_date': timezone.now(),
+                'cancellation_type': 'organizer_soft_delete'
+            }
+
         try:
-            cancelled_state = StateRaffle.objects.filter(
-                state_raffle_code__iexact='CAN'
-            ).first() or StateRaffle.objects.filter(
-                state_raffle_name__icontains='cancel'
-            ).first()
-            
-            if cancelled_state:
-                self.raffle_state = cancelled_state
-                self.save()
+            admin_account = self._get_admin_payment_method()
         except Exception as e:
-            print(f"Error al cambiar estado a cancelado: {e}")
-        
+            raise ValidationError(f"Error al obtener cuenta conjunta admin: {e}")
+
+        tickets = list(self.sold_tickets.all())
+        refunded_count = 0
+        total_refunded = Decimal('0.00')
+
+        for ticket in tickets:
+            try:
+                if admin_account.has_sufficient_balance(self.raffle_number_price):
+                    admin_account.deduct_balance(self.raffle_number_price)
+                    ticket.payment_method.add_balance(self.raffle_number_price)
+                    total_refunded += self.raffle_number_price
+                    refunded_count += 1
+            except Exception:
+                pass
+
+        if tickets:
+            self.sold_tickets.all().delete()
+
+        if cancelled_state:
+            self.raffle_state = cancelled_state
+            self.save()
+
         return {
             'message': 'Rifa cancelada exitosamente por el organizador',
             'tickets_refunded': refunded_count,
-            'total_amount_refunded': total_refunded,
+            'total_amount_refunded': float(total_refunded),
             'organizer': organizer_user.email,
             'cancellation_date': timezone.now(),
             'cancellation_type': 'organizer_soft_delete'
@@ -388,9 +459,6 @@ class Raffle(models.Model):
         
         if not self._is_in_active_state():
             return False, "La rifa no está activa"
-        
-        if now < self.raffle_draw_date:
-            return False, f"El sorteo está programado para {self.raffle_draw_date}"
         
         if not self.minimum_reached:
             remaining = self.raffle_minimum_numbers_sold - self.numbers_sold
@@ -416,14 +484,34 @@ class Raffle(models.Model):
         winner_ticket.save()
         
         self.raffle_winner = winner_ticket.user #Se actualiza el ganador de la rifa
-        
+        self.raffle_winner_ticket = winner_ticket
+
         self._change_state_to_sorted() #Se cambia el estado de la rifa a sorteada
         
         self.save()
         
         total_sold = self.numbers_sold
         total_revenue = total_sold * self.raffle_number_price
+        gains = total_revenue - self.raffle_prize_amount
         
+        if self.raffle_prize_type.prize_type_code.upper() == 'DIN' or self.raffle_prize_type.prize_type_name.upper() == 'DINERO':
+            # Usar función refactorizada para obtener cuenta conjunta de admin
+            try:
+                admin_account = self._get_admin_payment_method()
+            except Exception as e:
+                raise ValueError(f"No existe cuenta conjunta de admin para el sorteo: {e}")
+            # Entregar premio al ganador desde la cuenta conjunta
+            if admin_account.has_sufficient_balance(self.raffle_prize_amount):
+                admin_account.deduct_balance(self.raffle_prize_amount)
+                winner_ticket.payment_method.add_balance(self.raffle_prize_amount)
+            else:
+                raise ValueError("La cuenta conjunta no tiene saldo suficiente para el premio")
+            # Entregar ganancias al creador desde la cuenta conjunta
+            if self.raffle_creator_payment_method and admin_account.has_sufficient_balance(gains):
+                admin_account.deduct_balance(gains)
+                self.raffle_creator_payment_method.add_balance(gains)
+
+
         return { #Resultados del sorteo
             'message': f"¡Sorteo 100% aleatorio ejecutado exitosamente!",
             'winner_user': winner_ticket.user.email,
@@ -448,6 +536,6 @@ class Raffle(models.Model):
             if sorted_state:
                 self.raffle_state = sorted_state
             else:
-                print("Warning: No se encontró estado 'Sorteado' disponible")
+                pass  # No se encontró estado 'Sorteado' disponible
         except Exception as e:
-            print(f"Error al cambiar estado después del sorteo: {e}")
+            pass  # Error al cambiar estado después del sorteo

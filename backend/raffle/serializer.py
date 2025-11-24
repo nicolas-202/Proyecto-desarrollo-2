@@ -53,6 +53,7 @@ class RaffleListSerializer(serializers.ModelSerializer):
     raffle_prize_type = PrizeTypeSerializer(read_only=True)
     raffle_state = StateRaffleSerializer(read_only=True)
     raffle_created_by = UserBasicSerializer(read_only=True)
+    raffle_winner = UserBasicSerializer(read_only=True)
     class Meta:
         model = Raffle
         fields = [
@@ -68,6 +69,7 @@ class RaffleListSerializer(serializers.ModelSerializer):
             'raffle_prize_type',
             'raffle_state',
             'raffle_created_by',
+            'raffle_winner',
         ]
 
 class RaffleUpdateSerializer(serializers.ModelSerializer):
@@ -249,7 +251,7 @@ class AvailableNumbersSerializer(serializers.ModelSerializer):
     """
     Serializer para obtener números disponibles de una rifa
     """
-    available_numbers = serializers.ListField(read_only=True)
+    numbers = serializers.SerializerMethodField()
     numbers_sold = serializers.IntegerField(read_only=True)
     numbers_available = serializers.IntegerField(read_only=True)
     
@@ -260,7 +262,11 @@ class AvailableNumbersSerializer(serializers.ModelSerializer):
             'raffle_name',
             'raffle_number_amount',
             'raffle_number_price',
-            'available_numbers',
+            'numbers',  # array de números disponibles
             'numbers_sold', 
             'numbers_available'
         ]
+
+    def get_numbers(self, obj):
+        # Usar el método del modelo para obtener los números disponibles
+        return obj.available_numbers

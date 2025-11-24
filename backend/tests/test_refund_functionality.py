@@ -10,6 +10,7 @@ from django.db import transaction
 from io import StringIO
 from django.core.management import call_command
 import uuid
+from django.db.models.signals import post_save, post_init
 
 from raffle.models import Raffle
 from raffleInfo.models import StateRaffle, PrizeType
@@ -18,6 +19,7 @@ from location.models import Country, State, City
 from userInfo.models import Gender, DocumentType
 from tickets.models import Ticket, PaymentMethod
 from userInfo.models import PaymentMethodType
+from raffle.signals import auto_process_expired_raffle, check_raffle_on_load
 
 
 class RefundFunctionalityTestCase(TestCase):
@@ -70,6 +72,12 @@ class RefundFunctionalityTestCase(TestCase):
             state_raffle_code=f"CAN-{self.test_id}"
         )
         
+        # TIPO DE MÉTODO DE PAGO
+        self.payment_method_type = PaymentMethodType.objects.create(
+            payment_method_type_name=f"Efectivo-{self.test_id}",
+            payment_method_type_code=f"EFE-{self.test_id}"
+        )
+
         # Usuarios - usar UUIDs completamente únicos
         self.user = User.objects.create_user(
             email=f'organizer-{self.test_id}@test.com',
@@ -81,7 +89,7 @@ class RefundFunctionalityTestCase(TestCase):
             document_number=f'12345678-{self.test_id}',
             city=self.city,
         )
-        
+
         self.participant1 = User.objects.create_user(
             email=f'participant1-{self.test_id}@test.com',
             password='pass123',
@@ -92,7 +100,7 @@ class RefundFunctionalityTestCase(TestCase):
             document_number=f'87654321-{self.test_id}',
             city=self.city,
         )
-        
+
         self.participant2 = User.objects.create_user(
             email=f'participant2-{self.test_id}@test.com',
             password='pass123',
@@ -103,13 +111,8 @@ class RefundFunctionalityTestCase(TestCase):
             document_number=f'11111111-{self.test_id}',
             city=self.city,
         )
-        
-        # Método de pago para tickets - usar UUID único
-        self.payment_method_type = PaymentMethodType.objects.create(
-            payment_method_type_name=f"Efectivo-{self.test_id}",
-            payment_method_type_code=f"EFE-{self.test_id}"
-        )
-        
+
+        # Métodos de pago para participantes
         self.payment_method = PaymentMethod.objects.create(
             user=self.participant1,
             payment_method_type=self.payment_method_type,
@@ -129,22 +132,37 @@ class RefundFunctionalityTestCase(TestCase):
             payment_method_balance=Decimal('1000.00')
         )
 
+        # Crear usuario admin y método de pago admin
+        self.admin_user = User.objects.create_user(
+            email=f'admin-{self.test_id}@test.com',
+            password='adminpass',
+            first_name='Admin',
+            last_name='Cuenta',
+            gender=self.gender,
+            document_type=self.document_type,
+            document_number="0000000000",
+            city=self.city,
+        )
+        self.admin_payment_method = PaymentMethod.objects.create(
+            user=self.admin_user,
+            payment_method_type=self.payment_method_type,
+            paymenth_method_holder_name="Admin Cuenta",
+            paymenth_method_card_number_hash="hashed_card_admin",
+            paymenth_method_expiration_date=date(2026, 12, 31),
+            last_digits="0000",
+            payment_method_balance=Decimal('0.00')
+        )
+
+
+
     def test_signal_cancellation_with_refunds(self):
         """Test: Signal cancela rifa vencida CON tickets y procesa reembolsos"""
-        # Test simplificado: crear rifa ya vencida y usar método directo
-        # (Los signals ya están probados en otros tests, aquí probamos el flujo de reembolsos)
-        
-        from django.db import connection
-        
-        # Crear rifa vencida
-        past_date = timezone.now() - timedelta(hours=2)
-        past_start_date = past_date - timedelta(hours=1)
-        
+        now = timezone.now()
         raffle = Raffle.objects.create(
             raffle_name='Rifa Test Reembolsos',
-            raffle_start_date=past_start_date,
-            raffle_draw_date=past_date,
-            raffle_minimum_numbers_sold=5,  # Mínimo alto que no se alcanzará
+            raffle_start_date=now - timedelta(hours=1),
+            raffle_draw_date=now + timedelta(hours=2),
+            raffle_minimum_numbers_sold=5,
             raffle_number_amount=10,
             raffle_number_price=Decimal('25.00'),
             raffle_prize_amount=Decimal('200.00'),
@@ -152,73 +170,50 @@ class RefundFunctionalityTestCase(TestCase):
             raffle_state=self.active_state,
             raffle_created_by=self.user
         )
-        
-        # Guardar balances iniciales
+
         initial_balance_1 = self.payment_method.payment_method_balance
         initial_balance_2 = self.payment_method2.payment_method_balance
-        
-        # Crear tickets usando SQL raw
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                INSERT INTO tickets_ticket 
-                (user_id, raffle_id, number, payment_method_id, is_winner, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, [
-                self.participant1.id, raffle.id, 1, self.payment_method.id, False, 
-                timezone.now()
-            ])
-            
-            cursor.execute("""
-                INSERT INTO tickets_ticket 
-                (user_id, raffle_id, number, payment_method_id, is_winner, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, [
-                self.participant2.id, raffle.id, 2, self.payment_method2.id, False, 
-                timezone.now()
-            ])
-        
-        # Verificar que se vendieron los tickets
+        self.admin_payment_method.payment_method_balance = Decimal('0.00')
+        self.admin_payment_method.save()
+        initial_admin_balance = Decimal('0.00')
+
+        Ticket.purchase_ticket(self.participant1, raffle, 1, self.payment_method)
+        Ticket.purchase_ticket(self.participant2, raffle, 2, self.payment_method2)
+
         self.assertEqual(raffle.sold_tickets.count(), 2)
-        
-        # Simular lo que haría el signal: usar cancel_raffle_and_refund
-        result = raffle.cancel_raffle_and_refund(
-            admin_reason="Cancelación automática: mínimo no alcanzado"
-        )
-        
-        # Verificar que fue procesado correctamente
-        self.assertEqual(result['tickets_refunded'], 2)
-        self.assertEqual(result['total_amount_refunded'], 50)  # 2 * $25
-        
-        # Verificar que fue cancelada
+        self.admin_payment_method.refresh_from_db()
+        expected_admin_balance = initial_admin_balance + (2 * raffle.raffle_number_price)
+        self.assertEqual(self.admin_payment_method.payment_method_balance, expected_admin_balance)
+
+        # Simular vencimiento y disparar el signal
+        past_draw_date = now - timedelta(hours=2)
+        past_start_date = past_draw_date - timedelta(hours=1)
+        raffle.raffle_start_date = past_start_date
+        raffle.raffle_draw_date = past_draw_date
+        raffle._allow_past_date = True
+        raffle.save()  # Aquí el signal debe actuar
+
+        # Verificar que el estado fue cambiado por el signal
         raffle.refresh_from_db()
         self.assertEqual(raffle.raffle_state, self.cancelled_state)
-        
-        # Verificar que los tickets fueron eliminados (reembolsados)
         self.assertEqual(raffle.sold_tickets.count(), 0)
-        
-        # Verificar reembolsos
-        self.payment_method.refresh_from_db()
-        self.payment_method2.refresh_from_db()
-        
-        expected_balance_1 = initial_balance_1 + raffle.raffle_number_price
-        expected_balance_2 = initial_balance_2 + raffle.raffle_number_price
-        
-        self.assertEqual(self.payment_method.payment_method_balance, expected_balance_1)
-        self.assertEqual(self.payment_method2.payment_method_balance, expected_balance_2)
+
+        # Verificar reembolsos usando consulta directa a la BD
+        pm1 = PaymentMethod.objects.get(id=self.payment_method.id)
+        pm2 = PaymentMethod.objects.get(id=self.payment_method2.id)
+        self.assertEqual(pm1.payment_method_balance, initial_balance_1)
+        self.assertEqual(pm2.payment_method_balance, initial_balance_2)
+        admin_pm = PaymentMethod.objects.get(id=self.admin_payment_method.id)
+        self.assertEqual(admin_pm.payment_method_balance, Decimal('0.00'))
 
     def test_command_cancellation_with_refunds(self):
-        """Test: Comando cancela rifa vencida CON reembolsos"""
-        from django.db import connection
-        
-        # Crear rifa que YA esté vencida
-        past_date = timezone.now() - timedelta(days=1)
-        past_start_date = past_date - timedelta(hours=1)
-        
+        """Test: Comando cancela rifa vencida CON reembolsos (por signal)"""
+        now = timezone.now()
         raffle = Raffle.objects.create(
             raffle_name='Rifa Comando Reembolsos',
-            raffle_start_date=past_start_date,
-            raffle_draw_date=past_date,
-            raffle_minimum_numbers_sold=10,  # Mínimo muy alto
+            raffle_start_date=now - timedelta(hours=1),
+            raffle_draw_date=now + timedelta(days=1),
+            raffle_minimum_numbers_sold=10,
             raffle_number_amount=20,
             raffle_number_price=Decimal('50.00'),
             raffle_prize_amount=Decimal('500.00'),
@@ -226,81 +221,49 @@ class RefundFunctionalityTestCase(TestCase):
             raffle_state=self.active_state,
             raffle_created_by=self.user
         )
-        
-        # Guardar balances iniciales ANTES de crear tickets
+
         initial_balance_1 = self.payment_method.payment_method_balance
         initial_balance_2 = self.payment_method2.payment_method_balance
-        
-        # Crear tickets usando SQL raw con estructura correcta
-        with connection.cursor() as cursor:
-            # Insertar tickets directamente en BD (bypass validaciones)
-            cursor.execute("""
-                INSERT INTO tickets_ticket 
-                (user_id, raffle_id, number, payment_method_id, is_winner, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, [
-                self.participant1.id, raffle.id, 1, self.payment_method.id, False, 
-                timezone.now()
-            ])
-            
-            cursor.execute("""
-                INSERT INTO tickets_ticket 
-                (user_id, raffle_id, number, payment_method_id, is_winner, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, [
-                self.participant2.id, raffle.id, 2, self.payment_method2.id, False, 
-                timezone.now()
-            ])
-            
-            cursor.execute("""
-                INSERT INTO tickets_ticket 
-                (user_id, raffle_id, number, payment_method_id, is_winner, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, [
-                self.participant1.id, raffle.id, 3, self.payment_method.id, False, 
-                timezone.now()
-            ])
-        
-        # Verificar que se crearon los tickets
-        tickets_count = raffle.sold_tickets.count()
-        self.assertEqual(tickets_count, 3)
-        
-        # Simular lo que hace el comando: usar cancel_raffle_and_refund
-        result = raffle.cancel_raffle_and_refund(
-            admin_reason="Cancelación automática por comando: mínimo no alcanzado"
-        )
-        
-        # Verificar resultado de cancelación
-        self.assertEqual(result['tickets_refunded'], 3)
-        self.assertEqual(result['total_amount_refunded'], 150)  # 3 * $50
-        
-        # Verificar que fue cancelada
+        self.admin_payment_method.payment_method_balance = Decimal('0.00')
+        self.admin_payment_method.save()
+        initial_admin_balance = Decimal('0.00')
+
+        Ticket.purchase_ticket(self.participant1, raffle, 1, self.payment_method)
+        Ticket.purchase_ticket(self.participant2, raffle, 2, self.payment_method2)
+        Ticket.purchase_ticket(self.participant1, raffle, 3, self.payment_method)
+
+        self.assertEqual(raffle.sold_tickets.count(), 3)
+        self.admin_payment_method.refresh_from_db()
+        expected_admin_balance = initial_admin_balance + (3 * raffle.raffle_number_price)
+        self.assertEqual(self.admin_payment_method.payment_method_balance, expected_admin_balance)
+
+        # Simular vencimiento y disparar el signal
+        past_draw_date = now - timedelta(days=1)
+        past_start_date = past_draw_date - timedelta(hours=1)
+        raffle.raffle_start_date = past_start_date
+        raffle.raffle_draw_date = past_draw_date
+        raffle._allow_past_date = True
+        raffle.save()
+
+        # Verificar estado y reembolsos tras el signal
         raffle.refresh_from_db()
         self.assertEqual(raffle.raffle_state, self.cancelled_state)
-        
-        # Verificar que no quedan tickets
         self.assertEqual(raffle.sold_tickets.count(), 0)
-        
-        # Verificar reembolsos (2 tickets para participant1, 1 para participant2)
-        self.payment_method.refresh_from_db()
-        self.payment_method2.refresh_from_db()
-        
-        expected_balance_1 = initial_balance_1 + (2 * raffle.raffle_number_price)  # 2 tickets
-        expected_balance_2 = initial_balance_2 + (1 * raffle.raffle_number_price)  # 1 ticket
-        
-        self.assertEqual(self.payment_method.payment_method_balance, expected_balance_1)
-        self.assertEqual(self.payment_method2.payment_method_balance, expected_balance_2)
+
+        pm1 = PaymentMethod.objects.get(id=self.payment_method.id)
+        pm2 = PaymentMethod.objects.get(id=self.payment_method2.id)
+        self.assertEqual(pm1.payment_method_balance, initial_balance_1)
+        self.assertEqual(pm2.payment_method_balance, initial_balance_2)
+        admin_pm = PaymentMethod.objects.get(id=self.admin_payment_method.id)
+        self.assertEqual(admin_pm.payment_method_balance, Decimal('0.00'))
 
     def test_manual_cancel_method_refunds(self):
-        """Test: Método manual cancel_raffle_and_refund funciona correctamente"""
-        from django.db import connection
-        
-        # Crear rifa vencida
-        past_date = timezone.now() - timedelta(hours=2)
+        """Test: Cancelación manual funciona correctamente (por signal)"""
+        now = timezone.now()
         raffle = Raffle.objects.create(
             raffle_name='Rifa Manual Cancel',
-            raffle_start_date=past_date - timedelta(hours=1),
-            raffle_draw_date=past_date,
+            raffle_start_date=now - timedelta(hours=1),
+            raffle_draw_date=now + timedelta(hours=2),
             raffle_minimum_numbers_sold=5,
             raffle_number_amount=10,
             raffle_number_price=Decimal('30.00'),
@@ -309,69 +272,49 @@ class RefundFunctionalityTestCase(TestCase):
             raffle_state=self.active_state,
             raffle_created_by=self.user
         )
-        
-        # Guardar balances iniciales
+
         initial_balance_1 = self.payment_method.payment_method_balance
         initial_balance_2 = self.payment_method2.payment_method_balance
-        
-        # Crear tickets usando SQL raw para bypass completo
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                INSERT INTO tickets_ticket 
-                (user_id, raffle_id, number, payment_method_id, is_winner, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, [
-                self.participant1.id, raffle.id, 1, self.payment_method.id, False, 
-                timezone.now()
-            ])
-            
-            cursor.execute("""
-                INSERT INTO tickets_ticket 
-                (user_id, raffle_id, number, payment_method_id, is_winner, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, [
-                self.participant2.id, raffle.id, 2, self.payment_method2.id, False, 
-                timezone.now()
-            ])
-        
-        # Verificar que hay tickets
+        self.admin_payment_method.payment_method_balance = Decimal('0.00')
+        self.admin_payment_method.save()
+        initial_admin_balance = Decimal('0.00')
+
+        Ticket.purchase_ticket(self.participant1, raffle, 1, self.payment_method)
+        Ticket.purchase_ticket(self.participant2, raffle, 2, self.payment_method2)
+
         self.assertEqual(raffle.sold_tickets.count(), 2)
-        
-        # Usar método directo de cancelación
-        result = raffle.cancel_raffle_and_refund("Test manual cancellation")
-        
-        # Verificar resultado
-        self.assertEqual(result['tickets_refunded'], 2)
-        self.assertEqual(result['total_amount_refunded'], 60)  # 2 * $30
-        self.assertEqual(result['admin_reason'], "Test manual cancellation")
-        
-        # Verificar estado
+        self.admin_payment_method.refresh_from_db()
+        expected_admin_balance = initial_admin_balance + (2 * raffle.raffle_number_price)
+        self.assertEqual(self.admin_payment_method.payment_method_balance, expected_admin_balance)
+
+        # Simular vencimiento y disparar el signal
+        past_draw_date = now - timedelta(hours=2)
+        past_start_date = past_draw_date - timedelta(hours=1)
+        raffle.raffle_start_date = past_start_date
+        raffle.raffle_draw_date = past_draw_date
+        raffle._allow_past_date = True
+        raffle.save()
+
+        # Verificar estado y reembolsos tras el signal
         raffle.refresh_from_db()
         self.assertEqual(raffle.raffle_state, self.cancelled_state)
-        
-        # Verificar que no quedan tickets
         self.assertEqual(raffle.sold_tickets.count(), 0)
-        
-        # Verificar reembolsos
-        self.payment_method.refresh_from_db()
-        self.payment_method2.refresh_from_db()
-        
-        expected_balance_1 = initial_balance_1 + raffle.raffle_number_price
-        expected_balance_2 = initial_balance_2 + raffle.raffle_number_price
-        
-        self.assertEqual(self.payment_method.payment_method_balance, expected_balance_1)
-        self.assertEqual(self.payment_method2.payment_method_balance, expected_balance_2)
+
+        pm1 = PaymentMethod.objects.get(id=self.payment_method.id)
+        pm2 = PaymentMethod.objects.get(id=self.payment_method2.id)
+        self.assertEqual(pm1.payment_method_balance, initial_balance_1)
+        self.assertEqual(pm2.payment_method_balance, initial_balance_2)
+        admin_pm = PaymentMethod.objects.get(id=self.admin_payment_method.id)
+        self.assertEqual(admin_pm.payment_method_balance, Decimal('0.00'))
 
     def test_no_refunds_when_no_tickets(self):
         """Test: No hay reembolsos cuando no hay tickets vendidos"""
-        # Crear rifa vencida sin tickets
-        past_date = timezone.now() - timedelta(hours=2)
-        start_date = past_date - timedelta(hours=1)
-        
+        # Crear rifa en el futuro, sin tickets
+        now = timezone.now()
         raffle = Raffle.objects.create(
             raffle_name='Rifa Sin Tickets',
-            raffle_start_date=start_date,
-            raffle_draw_date=past_date,
+            raffle_start_date=now - timedelta(hours=1),
+            raffle_draw_date=now + timedelta(hours=2),
             raffle_minimum_numbers_sold=5,
             raffle_number_amount=10,
             raffle_number_price=Decimal('20.00'),
@@ -380,6 +323,17 @@ class RefundFunctionalityTestCase(TestCase):
             raffle_state=self.active_state,
             raffle_created_by=self.user
         )
+        
+        # NO creamos tickets - dejamos la rifa vacía
+        
+        # Simular vencimiento
+        past_draw_date = now - timedelta(hours=2)
+        past_start_date = past_draw_date - timedelta(hours=1)
+        
+        raffle.raffle_start_date = past_start_date
+        raffle.raffle_draw_date = past_draw_date
+        raffle._allow_past_date = True
+        raffle.save()
         
         # Guardar balances iniciales
         initial_balance_1 = self.payment_method.payment_method_balance
@@ -393,14 +347,11 @@ class RefundFunctionalityTestCase(TestCase):
         self.assertEqual(result['total_amount_refunded'], 0)
         
         # Verificar que balances no cambiaron
-        self.payment_method.refresh_from_db()
-        self.payment_method2.refresh_from_db()
-        
-        self.assertEqual(self.payment_method.payment_method_balance, initial_balance_1)
-        self.assertEqual(self.payment_method2.payment_method_balance, initial_balance_2)
+        pm1 = PaymentMethod.objects.get(id=self.payment_method.id)
+        pm2 = PaymentMethod.objects.get(id=self.payment_method2.id)
+        self.assertEqual(pm1.payment_method_balance, initial_balance_1)
+        self.assertEqual(pm2.payment_method_balance, initial_balance_2)
         
     def tearDown(self):
-        """Limpieza opcional después de cada test"""
-        # TestCase automáticamente hace rollback de la transacción, 
-        # pero podemos agregar limpieza adicional si es necesaria
+        """Limpieza después de cada test"""
         pass

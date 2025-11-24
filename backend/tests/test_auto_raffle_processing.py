@@ -131,6 +131,26 @@ class AutoRaffleProcessingTestCase(TransactionTestCase):
             last_digits="5678",
             payment_method_balance=Decimal('1000.00')
         )
+        # Usuario admin y método de pago admin para cancelaciones automáticas
+        self.admin_user = User.objects.create_user(
+            email='admin@test.com',
+            password='adminpass',
+            first_name='Admin',
+            last_name='Cuenta',
+            gender=self.gender,
+            document_type=self.document_type,
+            document_number="0000000000",
+            city=self.city,
+        )
+        self.admin_payment_method = PaymentMethod.objects.create(
+            user=self.admin_user,
+            payment_method_type=self.payment_method_type,
+            paymenth_method_holder_name="Admin Cuenta",
+            paymenth_method_card_number_hash="hashed_card_admin",
+            paymenth_method_expiration_date=date(2026, 12, 31),
+            last_digits="0000",
+            payment_method_balance=Decimal('0.00')
+        )
     
     def create_expired_raffle(self, minimum_sold=3, numbers_amount=10, days_expired=1):
         """Helper para crear rifas vencidas"""
@@ -238,7 +258,6 @@ class AutoRaffleProcessingTestCase(TransactionTestCase):
             raffle_created_by=self.user
         )
         
-        # Simular carga
         with transaction.atomic():
             loaded_raffle = Raffle.objects.get(id=raffle.id)
             
@@ -337,6 +356,29 @@ class ManagementCommandTestCase(TestCase):
         self.cancelled_state = StateRaffle.objects.create(
             state_raffle_name="Cancelada", 
             state_raffle_code="CAN"
+        )
+        self.payment_method_type, _ = PaymentMethodType.objects.get_or_create(
+            payment_method_type_name="Efectivo",
+            defaults={"payment_method_type_code": "EFE"}
+        )
+        self.admin_user = User.objects.create_user(
+            email='admin@test.com',
+            password='adminpass',
+            first_name='Admin',
+            last_name='Cuenta',
+            gender=self.gender,
+            document_type=self.document_type,
+            document_number="0000000000",
+            city=self.city,
+        )
+        self.admin_payment_method = PaymentMethod.objects.create(
+            user=self.admin_user,
+            payment_method_type=self.payment_method_type,
+            paymenth_method_holder_name="Admin Cuenta",
+            paymenth_method_card_number_hash="hashed_card_admin",
+            paymenth_method_expiration_date=date(2026, 12, 31),
+            last_digits="0000",
+            payment_method_balance=Decimal('0.00')
         )
     
     def test_command_dry_run_no_changes(self):
@@ -533,6 +575,29 @@ class IntegrationTestCase(APITestCase):
             state_raffle_name="Sorteada", 
             state_raffle_code="SOR"
         )
+        self.payment_method_type, _ = PaymentMethodType.objects.get_or_create(
+            payment_method_type_name="Efectivo",
+            defaults={"payment_method_type_code": "EFE"}
+        )
+        self.admin_user = User.objects.create_user(
+            email='admin@test.com',
+            password='adminpass',
+            first_name='Admin',
+            last_name='Cuenta',
+            gender=self.gender,
+            document_type=self.document_type,
+            document_number="0000000000",
+            city=self.city,
+        )
+        self.admin_payment_method = PaymentMethod.objects.create(
+            user=self.admin_user,
+            payment_method_type=self.payment_method_type,
+            paymenth_method_holder_name="Admin Cuenta",
+            paymenth_method_card_number_hash="hashed_card_admin",
+            paymenth_method_expiration_date=date(2026, 12, 31),
+            last_digits="0000",
+            payment_method_balance=Decimal('0.00')
+        )
     
     def test_full_workflow_automatic_cancellation(self):
         """Test: Flujo completo de cancelación automática"""
@@ -559,23 +624,19 @@ class IntegrationTestCase(APITestCase):
         # 2. Verificar que la rifa está activa
         raffle = Raffle.objects.get(id=raffle_id)
         self.assertEqual(raffle.raffle_state, self.active_state)
-        
         # 3. Simular que el tiempo pasó (cambiar fecha manualmente)
         past_date = timezone.now() - timedelta(hours=2)
-        start_date = past_date - timedelta(hours=1)  # Asegurar fecha inicio anterior
+        start_date = past_date - timedelta(hours=1)
         Raffle.objects.filter(id=raffle_id).update(
             raffle_draw_date=past_date,
             raffle_start_date=start_date
         )
-        
-        # 4. Simular carga de rifas (como haría el frontend)
-        response = self.client.get('/api/v1/raffle/list/')
-        self.assertEqual(response.status_code, 200)
-        
-        # 5. Verificar que se canceló automáticamente
-        raffle.refresh_from_db()
-        self.assertEqual(raffle.raffle_state, self.cancelled_state)
-        self.assertIsNone(raffle.raffle_winner)
+        # 4. Recargar la rifa para disparar el signal
+        with transaction.atomic():
+            loaded_raffle = Raffle.objects.get(id=raffle_id)
+        loaded_raffle.refresh_from_db()
+        self.assertEqual(loaded_raffle.raffle_state, self.cancelled_state)
+        self.assertIsNone(loaded_raffle.raffle_winner)
     
     def test_full_workflow_with_manual_command(self):
         """Test: Flujo usando comando manual"""
