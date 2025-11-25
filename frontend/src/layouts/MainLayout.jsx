@@ -6,12 +6,10 @@ function MainLayout() {
         <div className="body-div">
             <Header />
             
-            {/* Panel de notificaciones (como en tu prototipo) */}
             <div className="notifications-panel" id="notifications-panel"></div>
-            
             {/* Área principal de contenido */}
             <main className="main-content">
-                <Outlet /> {/* Renderiza la página actual */}
+                <Outlet /> 
             </main>
         </div>
     )

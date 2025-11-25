@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/authService';
 
@@ -6,7 +7,7 @@ import { apiClient } from '../services/authService';
 function Home() {
   // Obtener el contexto de autenticación
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  
+  const navigate = useNavigate();
   const [rifas, setRifas] = useState([]);
   const [prizeTypes, setPrizeTypes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -182,7 +183,7 @@ function Home() {
                 </p>
                 <div className="rifa-prize">
                   Precio ticket:
-                  ${rifa.raffle_number_prize?.toLocaleString()}
+                  ${rifa.raffle_number_price?.toLocaleString()}
                 </div>
                 <div className="rifa-card-content">
                   <strong>Premio:</strong> ${rifa.raffle_prize_amount?.toLocaleString()}
@@ -220,10 +221,7 @@ function Home() {
                       <button 
                         className="btn-secondary" 
                         style={{width: '100%', fontSize: '0.9rem'}}
-                        onClick={() => {
-                          // TODO: Navegar a gestionar rifa
-                          console.log('Gestionar rifa:', rifa.id);
-                        }}
+                        onClick={() => navigate(`/rifa/${rifa.id}`)}
                       >
                         ⚙️ Gestionar mi rifa
                       </button>
@@ -232,10 +230,7 @@ function Home() {
                       <button 
                         className="btn-primary" 
                         style={{width: '100%', fontSize: '0.9rem'}}
-                        onClick={() => {
-                          // TODO: Navegar a comprar números
-                          console.log('Comprar números en rifa:', rifa.id);
-                        }}
+                        onClick={() => navigate(`/rifa/${rifa.id}`)}
                       >
                         🎯 Comprar números
                       </button>
