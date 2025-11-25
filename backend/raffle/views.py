@@ -262,7 +262,7 @@ class AdminRaffleCancelView(generics.UpdateAPIView):
 class RaffleDrawView(generics.UpdateAPIView):
     """
     Vista para ejecutar sorteo de rifas
-    Solo el organizador de la rifa puede ejecutar el sorteo
+    Solo administradores pueden ejecutar el sorteo
     """
     queryset = Raffle.objects.all()
     serializer_class = RaffleDrawSerializer
@@ -273,19 +273,34 @@ class RaffleDrawView(generics.UpdateAPIView):
         """Ejecutar sorteo de la rifa"""
         instance = self.get_object()
         
-        try:
-            serializer = self.get_serializer(instance, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            raffle, result = serializer.save()
-            
+        # Si la rifa ya fue sorteada, devolver información del ganador
+        if instance.raffle_winner:
+            serializer = self.get_serializer(instance)
             return Response({
-                'message': 'Sorteo ejecutado exitosamente',
-                'draw_results': result
+                'message': 'Esta rifa ya fue sorteada',
+                'is_already_drawn': True,
+                'raffle_info': serializer.data
             }, status=status.HTTP_200_OK)
+        
+        try:
+            # Ejecutar sorteo
+            serializer = self.get_serializer(
+                instance, 
+                data=request.data, 
+                partial=True,
+                context={'request': request}
+            )
+            serializer.is_valid(raise_exception=True)
+            updated_instance = serializer.save()
+            
+            # Serializar con el resultado del sorteo
+            result_serializer = self.get_serializer(updated_instance)
+            
+            return Response(result_serializer.data, status=status.HTTP_200_OK)
             
         except Exception as e:
             return Response({
-                'error': f'Error al ejecutar sorteo: {str(e)}'
+                'error': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
 
 

@@ -8,7 +8,7 @@ from userInfo.models import Gender, DocumentType
 
 
 class BaseApiTest(APITestCase,):
-    __test__ = False  # Indica a pytest que esta clase NO debe ser probada directamente.
+    __test__ = False  
     """
     Clase base para testear ViewSets con permisos IsAdminOrReadOnly.
     

@@ -233,19 +233,100 @@ class RaffleSoftDeleteSerializer(serializers.ModelSerializer):
     
 
 class RaffleDrawSerializer(serializers.ModelSerializer):
+    """
+    Serializer para ejecutar sorteo y mostrar resultados
+    Si la rifa ya fue sorteada, muestra información del ganador
+    """
+    # Campos adicionales para mostrar información del sorteo
+    winner_info = serializers.SerializerMethodField()
+    draw_result = serializers.SerializerMethodField()
+    is_already_drawn = serializers.SerializerMethodField()
+    
     class Meta:
         model = Raffle
-        fields = ['id']
-        read_only_fields = ['id']
+        fields = [
+            'id', 
+            'raffle_name',
+            'raffle_state',
+            'is_already_drawn',
+            'winner_info',
+            'draw_result'
+        ]
+        read_only_fields = ['id', 'raffle_name', 'raffle_state']
+
+    def get_is_already_drawn(self, obj):
+        """Verificar si la rifa ya fue sorteada"""
+        return obj.raffle_winner is not None
+    
+    def get_winner_info(self, obj):
+        """Obtener información del ganador si existe"""
+        if not obj.raffle_winner:
+            return None
+        
+        return {
+            'winner_id': obj.raffle_winner.id,
+            'winner_name': f"{obj.raffle_winner.first_name} {obj.raffle_winner.last_name}",
+            'winner_email': obj.raffle_winner.email,
+            'winner_phone': obj.raffle_winner.phone_number,
+            'winning_number': obj.raffle_winner_ticket.number if obj.raffle_winner_ticket else None,
+            'prize_amount': str(obj.raffle_prize_amount),
+            'prize_type': obj.raffle_prize_type.prize_type_name,
+            'draw_date': obj.raffle_draw_date,
+        }
+    
+    def get_draw_result(self, obj):
+        """Obtener resultados del último sorteo ejecutado (si está en context)"""
+        # Este campo se llena cuando se ejecuta el sorteo
+        return self.context.get('draw_result', None)
 
     def update(self, instance, validated_data):
         """Ejecutar sorteo de la rifa"""
+        # Verificar si ya fue sorteada
+        if instance.raffle_winner:
+            raise serializers.ValidationError({
+                'error': 'Esta rifa ya fue sorteada',
+                'winner_info': self.get_winner_info(instance)
+            })
+        
         try:
             # Usar método del modelo para sorteo
             result = instance.execute_raffle_draw()
-            return instance, result
+            
+            # Guardar el resultado en el contexto para mostrarlo
+            self.context['draw_result'] = result
+            
+            return instance
         except (ValidationError, ValueError) as e:
-            raise serializers.ValidationError(str(e))
+            raise serializers.ValidationError({
+                'error': str(e),
+                'raffle_state': instance.raffle_state.state_raffle_name if instance.raffle_state else 'Desconocido'
+            })
+    
+    def to_representation(self, instance):
+        """Personalizar la respuesta según si ya fue sorteada o se acaba de sortear"""
+        representation = super().to_representation(instance)
+        
+        # Si hay resultado de sorteo en el contexto (sorteo recién ejecutado)
+        draw_result = self.context.get('draw_result')
+        if draw_result:
+            representation['message'] = draw_result.get('message')
+            representation['winner_user'] = draw_result.get('winner_user')
+            representation['winner_number'] = draw_result.get('winner_number')
+            representation['prize_amount'] = draw_result.get('prize_amount')
+            representation['prize_type'] = draw_result.get('prize_type')
+            representation['tickets_sold'] = draw_result.get('tickets_sold')
+            representation['total_revenue'] = draw_result.get('total_revenue')
+            representation['raffle_status'] = draw_result.get('raffle_status')
+        
+        # Agregar información del estado
+        if instance.raffle_state:
+            representation['raffle_state'] = {
+                'id': instance.raffle_state.id,
+                'name': instance.raffle_state.state_raffle_name,
+                'code': instance.raffle_state.state_raffle_code
+            }
+        
+        return representation
 
 
 class AvailableNumbersSerializer(serializers.ModelSerializer):
