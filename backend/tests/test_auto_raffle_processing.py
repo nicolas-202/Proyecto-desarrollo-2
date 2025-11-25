@@ -131,6 +131,18 @@ class AutoRaffleProcessingTestCase(TransactionTestCase):
             last_digits="5678",
             payment_method_balance=Decimal('1000.00')
         )
+        
+        # Método de pago para el organizador (self.user)
+        self.organizer_payment_method = PaymentMethod.objects.create(
+            user=self.user,
+            payment_method_type=self.payment_method_type,
+            paymenth_method_holder_name="Test User",
+            paymenth_method_card_number_hash="hashed_card_organizer",
+            paymenth_method_expiration_date=date(2026, 12, 31),
+            last_digits="9999",
+            payment_method_balance=Decimal('10000.00')
+        )
+        
         # Usuario admin y método de pago admin para cancelaciones automáticas
         self.admin_user = User.objects.create_user(
             email='admin@test.com',
@@ -168,7 +180,8 @@ class AutoRaffleProcessingTestCase(TransactionTestCase):
             raffle_prize_amount=Decimal('100.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.organizer_payment_method
         )
         return raffle
     
@@ -202,10 +215,11 @@ class AutoRaffleProcessingTestCase(TransactionTestCase):
             raffle_prize_amount=Decimal('100.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.organizer_payment_method
         )
         
-        # Comprar tickets para alcanzar mínimo
+        # Vender tickets para alcanzar el mínimo
         Ticket.objects.create(
             user=self.participant1,
             raffle=raffle,
@@ -255,7 +269,8 @@ class AutoRaffleProcessingTestCase(TransactionTestCase):
             raffle_prize_amount=Decimal('100.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.organizer_payment_method
         )
         
         with transaction.atomic():
@@ -300,10 +315,11 @@ class AutoRaffleProcessingTestCase(TransactionTestCase):
             raffle_prize_amount=Decimal('100.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.organizer_payment_method
         )
         
-        # Simular carga
+        # Simular carga desde BD
         with transaction.atomic():
             loaded_raffle = Raffle.objects.get(id=raffle.id)
             
@@ -380,6 +396,17 @@ class ManagementCommandTestCase(TestCase):
             last_digits="0000",
             payment_method_balance=Decimal('0.00')
         )
+        
+        # Payment method para el usuario organizador
+        self.organizer_payment_method = PaymentMethod.objects.create(
+            user=self.user,
+            payment_method_type=self.payment_method_type,
+            paymenth_method_holder_name="Test User",
+            paymenth_method_card_number_hash="hashed_card_user",
+            paymenth_method_expiration_date=date(2026, 12, 31),
+            last_digits="9999",
+            payment_method_balance=Decimal('10000.00')
+        )
     
     def test_command_dry_run_no_changes(self):
         """Test: Comando en dry-run no hace cambios reales"""
@@ -405,7 +432,8 @@ class ManagementCommandTestCase(TestCase):
                 raffle_prize_amount=Decimal('100.00'),
                 raffle_prize_type=self.prize_type,
                 raffle_state=self.active_state,
-                raffle_created_by=self.user
+                raffle_created_by=self.user,
+                raffle_creator_payment_method=self.organizer_payment_method
             )
             
             # Ejecutar comando en dry-run
@@ -441,7 +469,8 @@ class ManagementCommandTestCase(TestCase):
             raffle_prize_amount=Decimal('100.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.organizer_payment_method
         )
         
         # Ejecutar comando real
@@ -472,7 +501,8 @@ class ManagementCommandTestCase(TestCase):
             raffle_prize_amount=Decimal('100.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.organizer_payment_method
         )
         
         # Sin --force no debería procesar
@@ -505,7 +535,8 @@ class ManagementCommandTestCase(TestCase):
             raffle_prize_amount=Decimal('100.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.organizer_payment_method
         )
         
         # Ejecutar comando debería fallar con error descriptivo
@@ -559,6 +590,22 @@ class IntegrationTestCase(APITestCase):
             city=self.city,
         )
         
+        # Payment methods
+        self.payment_method_type, _ = PaymentMethodType.objects.get_or_create(
+            payment_method_type_name="Efectivo",
+            defaults={"payment_method_type_code": "EFE"}
+        )
+        
+        self.organizer_payment_method = PaymentMethod.objects.create(
+            user=self.organizer,
+            payment_method_type=self.payment_method_type,
+            paymenth_method_holder_name="Organizer User",
+            paymenth_method_card_number_hash="hashed_card_organizer",
+            paymenth_method_expiration_date=date(2026, 12, 31),
+            last_digits="9999",
+            payment_method_balance=Decimal('10000.00')
+        )
+        
         self.prize_type = PrizeType.objects.create(
             prize_type_name="Dinero", 
             prize_type_code="DIN"
@@ -575,10 +622,7 @@ class IntegrationTestCase(APITestCase):
             state_raffle_name="Sorteada", 
             state_raffle_code="SOR"
         )
-        self.payment_method_type, _ = PaymentMethodType.objects.get_or_create(
-            payment_method_type_name="Efectivo",
-            defaults={"payment_method_type_code": "EFE"}
-        )
+        
         self.admin_user = User.objects.create_user(
             email='admin@test.com',
             password='adminpass',
@@ -612,6 +656,7 @@ class IntegrationTestCase(APITestCase):
             'raffle_number_price': '10.00',
             'raffle_prize_amount': '100.00',
             'raffle_prize_type': self.prize_type.id,
+            'raffle_creator_payment_method': self.organizer_payment_method.id,
         }
         
         self.client.force_authenticate(user=self.organizer)
@@ -655,7 +700,8 @@ class IntegrationTestCase(APITestCase):
                 raffle_prize_amount=Decimal('100.00'),
                 raffle_prize_type=self.prize_type,
                 raffle_state=self.active_state,
-                raffle_created_by=self.organizer
+                raffle_created_by=self.organizer,
+                raffle_creator_payment_method=self.organizer_payment_method
             )
         
         # Ejecutar comando

@@ -132,6 +132,17 @@ class RefundFunctionalityTestCase(TestCase):
             payment_method_balance=Decimal('1000.00')
         )
 
+        # Método de pago para el organizador
+        self.organizer_payment_method = PaymentMethod.objects.create(
+            user=self.user,
+            payment_method_type=self.payment_method_type,
+            paymenth_method_holder_name="Organizer User",
+            paymenth_method_card_number_hash="hashed_card_organizer",
+            paymenth_method_expiration_date=date(2026, 12, 31),
+            last_digits="9999",
+            payment_method_balance=Decimal('10000.00')
+        )
+
         # Crear usuario admin y método de pago admin
         self.admin_user = User.objects.create_user(
             email=f'admin-{self.test_id}@test.com',
@@ -168,7 +179,8 @@ class RefundFunctionalityTestCase(TestCase):
             raffle_prize_amount=Decimal('200.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.organizer_payment_method
         )
 
         initial_balance_1 = self.payment_method.payment_method_balance
@@ -219,7 +231,8 @@ class RefundFunctionalityTestCase(TestCase):
             raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.organizer_payment_method
         )
 
         initial_balance_1 = self.payment_method.payment_method_balance
@@ -270,7 +283,8 @@ class RefundFunctionalityTestCase(TestCase):
             raffle_prize_amount=Decimal('300.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.organizer_payment_method
         )
 
         initial_balance_1 = self.payment_method.payment_method_balance
@@ -321,7 +335,8 @@ class RefundFunctionalityTestCase(TestCase):
             raffle_prize_amount=Decimal('100.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.organizer_payment_method
         )
         
         # NO creamos tickets - dejamos la rifa vacía

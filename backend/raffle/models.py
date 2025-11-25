@@ -476,6 +476,54 @@ class Raffle(models.Model):
         if not sold_tickets:
             raise ValueError("No hay tickets vendidos para sortear")
         
+        total_sold = self.numbers_sold
+        total_revenue = total_sold * self.raffle_number_price
+        gains = total_revenue - self.raffle_prize_amount
+        
+        # Verificar si el organizador puede cubrir el déficit ANTES de hacer el sorteo
+        if self.raffle_prize_type.prize_type_code.upper() == 'DIN' or self.raffle_prize_type.prize_type_name.upper() == 'DINERO':
+            if gains < 0:
+                deficit = abs(gains)
+                if not self.raffle_creator_payment_method.has_sufficient_balance(deficit):
+                    # Cancelar rifa y reembolsar tickets
+                    from raffleInfo.models import StateRaffle
+                    
+                    # Obtener cuenta admin para reembolsos
+                    try:
+                        admin_account = self._get_admin_payment_method()
+                    except Exception as e:
+                        raise ValueError(f"Error al obtener cuenta conjunta admin: {e}")
+                    
+                    # Reembolsar cada ticket
+                    for ticket in sold_tickets:
+                        try:
+                            if admin_account.has_sufficient_balance(self.raffle_number_price):
+                                admin_account.deduct_balance(self.raffle_number_price)
+                                ticket.payment_method.add_balance(self.raffle_number_price)
+                        except Exception:
+                            pass
+                    
+                    # Eliminar tickets
+                    self.sold_tickets.all().delete()
+                    
+                    # Cambiar estado a cancelado
+                    cancelled_state = StateRaffle.objects.filter(
+                        state_raffle_code__iexact='CAN'
+                    ).first() or StateRaffle.objects.filter(
+                        state_raffle_name__icontains='cancel'
+                    ).first()
+                    
+                    if cancelled_state:
+                        self.raffle_state = cancelled_state
+                        self.save()
+                    
+                    raise ValueError(
+                        f"Sorteo cancelado: el organizador no tiene saldo suficiente para cubrir el déficit de ${deficit:.2f}. "
+                        f"Se han reembolsado todos los tickets. "
+                        f"Ingresos: ${total_revenue:.2f}, Premio: ${self.raffle_prize_amount:.2f}"
+                    )
+        
+        # Si llegamos aquí, podemos proceder con el sorteo
         winner_ticket = random.choice(sold_tickets)
         
         winner_ticket.is_winner = True
@@ -488,24 +536,30 @@ class Raffle(models.Model):
         
         self.save()
         
-        total_sold = self.numbers_sold
-        total_revenue = total_sold * self.raffle_number_price
-        gains = total_revenue - self.raffle_prize_amount
-        
         if self.raffle_prize_type.prize_type_code.upper() == 'DIN' or self.raffle_prize_type.prize_type_name.upper() == 'DINERO':
             # Usar función refactorizada para obtener cuenta conjunta de admin
             try:
                 admin_account = self._get_admin_payment_method()
             except Exception as e:
                 raise ValueError(f"No existe cuenta conjunta de admin para el sorteo: {e}")
+            
+            # Si hay pérdidas, el organizador debe cubrir el déficit
+            if gains < 0:
+                deficit = abs(gains)
+                # Ya verificamos que tiene saldo suficiente antes del sorteo
+                # Transferir del organizador a cuenta conjunta para cubrir el déficit
+                self.raffle_creator_payment_method.deduct_balance(deficit)
+                admin_account.add_balance(deficit)
+            
             # Entregar premio al ganador desde la cuenta conjunta
             if admin_account.has_sufficient_balance(self.raffle_prize_amount):
                 admin_account.deduct_balance(self.raffle_prize_amount)
                 winner_ticket.payment_method.add_balance(self.raffle_prize_amount)
             else:
                 raise ValueError("La cuenta conjunta no tiene saldo suficiente para el premio")
-            # Entregar ganancias al creador desde la cuenta conjunta
-            if self.raffle_creator_payment_method and admin_account.has_sufficient_balance(gains):
+            
+            # Entregar ganancias al creador desde la cuenta conjunta (solo si son positivas)
+            if self.raffle_creator_payment_method and gains > 0 and admin_account.has_sufficient_balance(gains):
                 admin_account.deduct_balance(gains)
                 self.raffle_creator_payment_method.add_balance(gains)
 

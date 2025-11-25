@@ -125,10 +125,8 @@ class PaymentMethod(models.Model):
         Agregar saldo (para simulación de recargas)
         Solo debe usarse internamente, no desde la API
         """
-        print(f"[DEBUG add_balance] Antes: id={id(self)}, saldo={self.payment_method_balance}, monto a agregar={amount}")
         self.payment_method_balance += amount
         self.save()
-        print(f"[DEBUG add_balance] Después: id={id(self)}, saldo={self.payment_method_balance}")
 
     def get_balance_display(self):
         """

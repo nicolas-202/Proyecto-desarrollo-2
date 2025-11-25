@@ -12,8 +12,9 @@ from decimal import Decimal
 from raffle.models import Raffle
 from raffleInfo.models import PrizeType, StateRaffle
 from user.models import User
-from userInfo.models import Gender, DocumentType
+from userInfo.models import Gender, DocumentType, PaymentMethodType, PaymentMethod
 from location.models import Country, State, City
+from datetime import datetime
 
 
 class RaffleAPITestCase(APITestCase):
@@ -49,6 +50,21 @@ class RaffleAPITestCase(APITestCase):
             city=cls.city,
         )
         
+        # PaymentMethod para el usuario
+        cls.payment_method_type = PaymentMethodType.objects.create(
+            payment_method_type_name="Cuenta de Ahorros",
+            payment_method_type_code="SA"
+        )
+        cls.payment_method = PaymentMethod.objects.create(
+            payment_method_type=cls.payment_method_type,
+            user=cls.user,
+            paymenth_method_holder_name=f"{cls.user.first_name} {cls.user.last_name}",
+            paymenth_method_card_number_hash="test_hash_123",
+            paymenth_method_expiration_date=datetime.now().date() + timedelta(days=365),
+            last_digits="1234",
+            payment_method_balance=10000000.00
+        )
+        
         # Datos para rifas
         cls.prize_type = PrizeType.objects.create(
             prize_type_name="Dinero", 
@@ -79,6 +95,7 @@ class RaffleAPITestCase(APITestCase):
             'raffle_number_price': '5.00',
             'raffle_prize_amount': '500.00',
             'raffle_prize_type': self.prize_type.id,
+            'raffle_creator_payment_method': self.payment_method.id,
         }
     
     def test_create_raffle_success(self):
@@ -121,7 +138,8 @@ class RaffleAPITestCase(APITestCase):
             raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.payment_method
         )
         
         response = self.client.get('/api/v1/raffle/list/')
@@ -141,7 +159,8 @@ class RaffleAPITestCase(APITestCase):
             raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.payment_method
         )
         
         response = self.client.get(f'/api/v1/raffle/{raffle.id}/')
@@ -161,7 +180,8 @@ class RaffleAPITestCase(APITestCase):
             raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.payment_method
         )
         
         self.client.force_authenticate(user=self.user)
@@ -199,7 +219,8 @@ class RaffleAPITestCase(APITestCase):
             raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.payment_method
         )
         
         self.client.force_authenticate(user=other_user)
@@ -221,7 +242,8 @@ class RaffleAPITestCase(APITestCase):
             raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.payment_method
         )
         
         response = self.client.get(f'/api/v1/raffle/user/{self.user.id}/')
@@ -244,7 +266,8 @@ class RaffleModelTestCase(APITestCase):
             raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.payment_method
         )
 
         # Simular usuario admin y método de pago admin
@@ -317,7 +340,8 @@ class RaffleModelTestCase(APITestCase):
                 raffle_prize_amount=Decimal('500.00'),
                 raffle_prize_type=self.prize_type,
                 raffle_state=self.active_state,
-                raffle_created_by=self.user
+                raffle_created_by=self.user,
+                raffle_creator_payment_method=self.payment_method
             )
         other_user = User.objects.create_user(
                 email='other@test.com',
@@ -358,6 +382,23 @@ class RaffleModelTestCase(APITestCase):
             document_number='12345678',
             city=cls.city,
         )
+        
+        # PaymentMethod para el usuario
+        from userInfo.models import PaymentMethodType, PaymentMethod
+        cls.payment_method_type = PaymentMethodType.objects.create(
+            payment_method_type_name="Cuenta de Ahorros",
+            payment_method_type_code="SA"
+        )
+        cls.payment_method = PaymentMethod.objects.create(
+            payment_method_type=cls.payment_method_type,
+            user=cls.user,
+            paymenth_method_holder_name=f"{cls.user.first_name} {cls.user.last_name}",
+            paymenth_method_card_number_hash="test_hash_456",
+            paymenth_method_expiration_date=datetime.now().date() + timedelta(days=365),
+            last_digits="5678",
+            payment_method_balance=10000000.00
+        )
+        
         cls.prize_type = PrizeType.objects.create(
             prize_type_name="Dinero", prize_type_code="DIN"
         )
@@ -381,7 +422,8 @@ class RaffleModelTestCase(APITestCase):
             raffle_number_price=Decimal('5.00'),
             raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.payment_method
         )
         
         self.assertEqual(raffle.raffle_state, self.active_state)
@@ -434,7 +476,8 @@ class RaffleModelTestCase(APITestCase):
             raffle_number_price=Decimal('5.00'),
             raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.payment_method
         )
         
         self.assertEqual(str(raffle), 'Mi Rifa Test')
@@ -452,7 +495,8 @@ class RaffleModelTestCase(APITestCase):
             raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.payment_method
         )
         
         # Debe estar activa para ventas (fecha futura, estado activo, sin ganador)
@@ -470,7 +514,8 @@ class RaffleModelTestCase(APITestCase):
             raffle_number_price=Decimal('5.00'),
             raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.payment_method
         )
         
         # Por ahora numbers_sold siempre retorna 0, así que disponibles = total
@@ -489,7 +534,8 @@ class RaffleModelTestCase(APITestCase):
             raffle_prize_amount=Decimal('500.00'),
             raffle_prize_type=self.prize_type,
             raffle_state=self.active_state,
-            raffle_created_by=self.user
+            raffle_created_by=self.user,
+            raffle_creator_payment_method=self.payment_method
         )
         
         can_draw, message = raffle.can_execute_draw()
