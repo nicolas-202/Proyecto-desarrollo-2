@@ -5,6 +5,7 @@ import Home from './pages/Home'
 import Auth from './pages/Auth'
 import BuyNumbers from './pages/BuyNumbers'
 import CreateRaffle from './pages/CreateRaffle'
+import MyNumbers from './pages/MyNumbers'
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="auth" element={<Auth />} />
           <Route path="rifa/:rifaId" element={<BuyNumbers />} />
           <Route path="create-rifa" element={<CreateRaffle />} />
+          <Route path="my-numbers" element={<MyNumbers />} />
         </Route>
       </Routes>
     </AuthProvider>
