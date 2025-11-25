@@ -1,4 +1,4 @@
-function BuyNumbers() {
+function MyNumbers() {
   const navigate = useNavigate();
 
   return (
@@ -10,10 +10,10 @@ function BuyNumbers() {
       </div>
 
       <h1 style={{color: 'white', textAlign: 'center', marginTop: '3rem'}}>
-        Página BuyNumbers
+        Página MyNumbers
       </h1>
     </div>
   );
 }
 
-export default BuyNumbers;
+export default MyNumbers;
