@@ -221,7 +221,7 @@ function Home() {
                       <button 
                         className="btn-secondary" 
                         style={{width: '100%', fontSize: '0.9rem'}}
-                        onClick={() => navigate(`/rifa/${rifa.id}`)}
+                        onClick={() => navigate(`/raffle/${rifa.id}`)}
                       >
                         ⚙️ Gestionar mi rifa
                       </button>
@@ -230,7 +230,7 @@ function Home() {
                       <button 
                         className="btn-primary" 
                         style={{width: '100%', fontSize: '0.9rem'}}
-                        onClick={() => navigate(`/rifa/${rifa.id}`)}
+                        onClick={() => navigate(`/raffle/${rifa.id}`)}
                       >
                         🎯 Comprar números
                       </button>

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 
-function MyNumbers() {
+function EditRaffle() {
   const navigate = useNavigate();
 
   return (
@@ -8,17 +8,17 @@ function MyNumbers() {
       <div className="breadcrumbs">
         <div className="breadcrumb-item" onClick={() => navigate('/')}>Inicio</div>
         <div className="breadcrumb-separator">&gt;</div>
-        <div className="breadcrumb-item">Mis números</div>
+        <div className="breadcrumb-item">Editar rifa</div>
       </div>
 
       <h1 style={{color: 'white', textAlign: 'center', marginTop: '3rem'}}>
-        Página Mis Números
+        Página Editar rifa
       </h1>
       <p style={{color: 'white', textAlign: 'center'}}>
-        Aquí podrás ver todos los números que has comprado en las rifas.
+        Aquí podrás editar tus rifas.
       </p>
     </div>
   );
 }
 
-export default MyNumbers;
+export default EditRaffle;

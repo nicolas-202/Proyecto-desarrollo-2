@@ -92,7 +92,7 @@ class UserBasicSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'email', 'first_name', 'last_name', 'full_name', 'phone_number')
+        fields = ('id', 'email', 'first_name', 'last_name', 'full_name', 'phone_number', 'rating')
 
 #Serializador para mostrar información del perfil de usuario
 class UserProfileSerializer(serializers.ModelSerializer):

@@ -5,7 +5,7 @@ import { apiClient } from '../services/authService';
 
 function BuyNumbers(){
     // Hooks para obtener parámetros de la URL y navegación
-    const { rifaId } = useParams();
+    const { raffleId } = useParams();
     const navigate = useNavigate();
     const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
@@ -22,10 +22,10 @@ function BuyNumbers(){
         const fetchData = async () => {
             try {
                 setLoading(true);
-                // Usar rifaId real en las URLs
+                // Usar raffleId real en las URLs
                 const[rifaResponse, availableNumbersResponse] = await Promise.all([
-                    apiClient.get(`/raffle/${rifaId}/`),
-                    apiClient.get(`/raffle/${rifaId}/available/`)
+                    apiClient.get(`/raffle/${raffleId}/`),
+                    apiClient.get(`/raffle/${raffleId}/available/`)
                 ]);
                 setRifa(rifaResponse.data);
                 // Si la respuesta tiene .numbers, usar ese campo
@@ -44,11 +44,11 @@ function BuyNumbers(){
             }
         };
 
-        // Solo cargar datos si tenemos rifaId y auth está listo
-        if (rifaId && !authLoading) {
+        // Solo cargar datos si tenemos raffleId y auth está listo
+        if (raffleId && !authLoading) {
             fetchData();
         }
-    }, [rifaId, authLoading]);
+    }, [raffleId, authLoading]);
 
     // Cargar métodos de pago del usuario
     useEffect(() => {
@@ -56,7 +56,6 @@ function BuyNumbers(){
             if (!user?.id) return;
             try {
                 const response = await apiClient.get(`/user-info/payment-methods/${user.id}/`);
-                console.log('Respuesta métodos de pago:', response.data);
                 let arr = [];
                 if (Array.isArray(response.data)) {
                     arr = response.data;
@@ -69,7 +68,6 @@ function BuyNumbers(){
                 if (arr.length === 1) {
                     setSelectedPaymentMethod(arr[0].id);
                 }
-                console.log('Métodos de pago en estado:', arr);
             } catch (err) {
                 console.error('Error cargando métodos de pago:', err);
                 setPaymentMethods([]);
@@ -84,8 +82,8 @@ function BuyNumbers(){
     const reloadRaffleData = async () => {
         try {
             const [rifaResponse, availableNumbersResponse] = await Promise.all([
-                apiClient.get(`/raffle/${rifaId}/`),
-                apiClient.get(`/raffle/${rifaId}/available/`)
+                apiClient.get(`/raffle/${raffleId}/`),
+                apiClient.get(`/raffle/${raffleId}/available/`)
             ]);
             
             setRifa(rifaResponse.data);
@@ -174,7 +172,7 @@ function BuyNumbers(){
 
         setLoading(true);
         try {
-            const response = await apiClient.patch(`/raffle/${rifaId}/draw/`);
+            const response = await apiClient.patch(`/raffle/${raffleId}/draw/`);
             
             // Mostrar resultado del sorteo
             const result = response.data;
@@ -236,9 +234,64 @@ function BuyNumbers(){
 
     // Función para editar/modificar rifa (creador o admin)
     const handleEditRaffle = () => {
-        // TODO: Implementar página de edición de rifa
-        alert('Función de edición en desarrollo. Próximamente podrás modificar tu rifa.');
-        // navigate(`/edit-rifa/${rifaId}`);
+        // Validar que el usuario sea el creador o admin
+        if (!isRaffleCreator && !isAdmin) {
+            alert('No tienes permisos para modificar esta rifa');
+            return;
+        }
+        
+        // Validar que la rifa esté activa
+        if (rifa.raffle_state?.state_raffle_name !== 'Activa') {
+            alert('Solo puedes modificar rifas activas');
+            return;
+        }
+        
+        // Navegar a la página de edición
+        navigate(`/edit-raffle/${raffleId}`);
+    };
+
+    // Función para cancelar rifa con reembolsos (solo creador)
+    const handleCancelRaffle = async () => {
+        if (!isRaffleCreator) {
+            alert('Solo el creador puede cancelar la rifa');
+            return;
+        }
+
+        const confirmCancel = window.confirm(
+            '¿Estás seguro de que deseas cancelar esta rifa?\n\n' +
+            'Esta acción:\n' +
+            '- Cambiará el estado a "Cancelada"\n' +
+            '- Reembolsará automáticamente todos los números vendidos\n' +
+            '- No se puede deshacer\n\n' +
+            '¿Deseas continuar?'
+        );
+
+        if (!confirmCancel) return;
+
+        setLoading(true);
+        try {
+            const response = await apiClient.patch(`/raffle/${raffleId}/delete/`);
+            
+            alert(
+                `✅ Rifa cancelada exitosamente\n\n` +
+                `${response.data.message}\n\n` +
+                `📊 Resumen:\n` +
+                `- Números reembolsados: ${response.data.tickets_refunded}\n` +
+                `- Monto total reembolsado: $${response.data.total_amount_refunded}\n` +
+                `- Tipo de cancelación: ${response.data.cancellation_type}\n` +
+                `- Nuevo estado: ${response.data.new_state}`
+            );
+            
+            // Recargar datos de la rifa
+            await reloadRaffleData();
+            
+        } catch (error) {
+            console.error('Error al cancelar rifa:', error);
+            const errorMessage = error.response?.data?.error || 'Error al cancelar la rifa';
+            alert(`❌ ${errorMessage}`);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Verificar si el usuario es el creador de la rifa
@@ -248,8 +301,6 @@ function BuyNumbers(){
     const isAdmin = isAuthenticated && (user?.is_staff || user?.is_admin);
 
     // Renderizado condicional para loading y errores
-    console.log('RIFA:', rifa);
-    console.log('AVAILABLE NUMBERS:', availableNumbers);
     // Aseguramos que availableNumbers sea un array
     const numbersArray = Array.isArray(availableNumbers) ? availableNumbers : [];
     if (authLoading || loading) {
@@ -297,8 +348,8 @@ function BuyNumbers(){
                     marginBottom: '1rem',
                     flexWrap: 'wrap'
                 }}>
-                    {/* Botón para modificar rifa (creador o admin) */}
-                    {(isRaffleCreator || isAdmin) && (
+                    {/* Botón para modificar rifa (creador o admin) - Solo si está activa */}
+                    {(isRaffleCreator || isAdmin) && rifa.raffle_state?.state_raffle_name === 'Activa' && (
                         <button 
                             className="btn-secondary" 
                             onClick={handleEditRaffle}
@@ -309,6 +360,27 @@ function BuyNumbers(){
                             }}
                         >
                             ✏️ Modificar rifa
+                        </button>
+                    )}
+
+                    {/* Botón para cancelar rifa (solo creador) - Solo si está activa */}
+                    {isRaffleCreator && rifa.raffle_state?.state_raffle_name === 'Activa' && (
+                        <button 
+                            className="btn-secondary" 
+                            onClick={handleCancelRaffle}
+                            disabled={loading}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                background: '#e74c3c',
+                                color: 'white',
+                                border: 'none'
+                            }}
+                            onMouseOver={(e) => e.target.style.background = '#c0392b'}
+                            onMouseOut={(e) => e.target.style.background = '#e74c3c'}
+                        >
+                            ❌ Cancelar rifa
                         </button>
                     )}
 

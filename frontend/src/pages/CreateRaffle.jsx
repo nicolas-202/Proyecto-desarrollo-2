@@ -246,9 +246,6 @@ function CreateRaffle() {
       // El backend devuelve { raffle_id, raffle_name, raffle_state, message }
       const raffleId = response.data.raffle_id || response.data.id;
       
-      console.log('Rifa creada:', response.data);
-      console.log('ID de rifa:', raffleId);
-      
       // Limpiar formulario
       setFormData({
         raffle_name: '',
@@ -266,7 +263,7 @@ function CreateRaffle() {
       // Redirigir a la página de detalle de la rifa creada
       setTimeout(() => {
         if (raffleId) {
-          navigate(`/rifa/${raffleId}`);
+          navigate(`/raffle/${raffleId}`);
         } else {
           // Si no hay ID, ir al home
           console.error('No se recibió ID de la rifa creada');

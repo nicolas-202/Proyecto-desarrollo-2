@@ -17,9 +17,7 @@ from raffleInfo.serializer import PrizeTypeSerializer, StateRaffleSerializer
 
 
 class RaffleCreateView(generics.CreateAPIView):
-    """
-    Vista para crear nuevas rifas únicamente
-    """
+
     serializer_class = RaffleCreateSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]  # Para manejar archivos de imagen
@@ -40,10 +38,7 @@ class RaffleCreateView(generics.CreateAPIView):
         }, status=status.HTTP_201_CREATED)
 
 class RaffleListView(generics.ListAPIView):
-    """
-    Vista para listar todas las rifas activas con detalles expandidos
-    Acceso público - no requiere autenticación
-    """
+
     serializer_class = RaffleListSerializer
     permission_classes = [AllowAny]  # Acceso público
     
@@ -70,10 +65,7 @@ class RaffleListView(generics.ListAPIView):
 
 
 class RaffleSoftDeleteView(generics.UpdateAPIView):
-    """
-    Vista para soft delete de rifas
-    Cambia el estado de la rifa a inactivo en lugar de eliminarla
-    """
+
     queryset = Raffle.objects.all()
     serializer_class = RaffleSoftDeleteSerializer
     permission_classes = [IsAuthenticated]
@@ -112,10 +104,7 @@ class RaffleSoftDeleteView(generics.UpdateAPIView):
 
 
 class RaffleDetailView(generics.RetrieveAPIView):
-    """
-    Vista para obtener el detalle de una rifa específica
-    Acceso público
-    """
+
     queryset = Raffle.objects.all().select_related('raffle_prize_type', 'raffle_state', 'raffle_created_by', 'raffle_winner')
     serializer_class = RaffleListSerializer
     permission_classes = [AllowAny]
@@ -123,10 +112,7 @@ class RaffleDetailView(generics.RetrieveAPIView):
 
 
 class RaffleUpdateView(generics.UpdateAPIView):
-    """
-    Vista para actualizar rifas existentes
-    Solo el creador puede actualizar
-    """
+
     queryset = Raffle.objects.all()
     serializer_class = RaffleUpdateSerializer
     permission_classes = [IsAuthenticated]
@@ -170,17 +156,12 @@ class RaffleUpdateView(generics.UpdateAPIView):
         return self.update(request, *args, **kwargs)
 
 class RaffleUserListView(generics.ListAPIView):
-    """
-    Vista pública para ver rifas de un usuario específico
-    Puede incluir rifas inactivas si el usuario autenticado es el mismo
-    """
+
     serializer_class = RaffleListSerializer
     permission_classes = [AllowAny]
     
     def get_queryset(self):
-        """
-        Retorna rifas de un usuario específico
-        """
+
         user_id = self.kwargs.get('user_id')
         include_inactive = self.request.query_params.get('include_inactive', 'false').lower() == 'true'
         
@@ -208,9 +189,7 @@ class RaffleUserListView(generics.ListAPIView):
         return queryset.order_by('-raffle_created_at')
     
     def _is_same_user(self, user_id):
-        """
-        Verifica si el usuario autenticado es el mismo que se está consultando
-        """
+
         if not self.request.user.is_authenticated:
             return False
         
@@ -221,10 +200,7 @@ class RaffleUserListView(generics.ListAPIView):
 
 
 class AdminRaffleCancelView(generics.UpdateAPIView):
-    """
-    Vista EXCLUSIVA para administradores
-    Permite cancelar rifas con reembolsos por razones administrativas
-    """
+
     queryset = Raffle.objects.all()
     permission_classes = [IsAdminUser]  # Solo administradores
     lookup_field = 'pk'
@@ -260,10 +236,7 @@ class AdminRaffleCancelView(generics.UpdateAPIView):
         
 
 class RaffleDrawView(generics.UpdateAPIView):
-    """
-    Vista para ejecutar sorteo de rifas
-    Solo administradores pueden ejecutar el sorteo
-    """
+
     queryset = Raffle.objects.all()
     serializer_class = RaffleDrawSerializer
     permission_classes = [IsAdminUser]
@@ -305,9 +278,7 @@ class RaffleDrawView(generics.UpdateAPIView):
 
 
 class AvailableNumbersView(generics.RetrieveAPIView):
-    """
-    Vista pública para obtener números disponibles de una rifa
-    """
+
     queryset = Raffle.objects.all()
     serializer_class = AvailableNumbersSerializer
     permission_classes = [AllowAny]

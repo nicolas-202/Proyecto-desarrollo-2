@@ -6,10 +6,7 @@ from raffleInfo.serializer import PrizeTypeSerializer, StateRaffleSerializer
 from django.core.exceptions import ValidationError 
 
 class RaffleCreateSerializer(serializers.ModelSerializer):
-    """
-    Serializer para crear nuevas rifas
-    Estado se asigna automáticamente a nivel del modelo
-    """
+
     raffle_image = serializers.ImageField(required=False)  
     
     class Meta: 
@@ -48,9 +45,7 @@ class RaffleCreateSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
         
 class RaffleListSerializer(serializers.ModelSerializer):
-    """
-    Serializer para listar rifas
-    """
+
     raffle_prize_type = PrizeTypeSerializer(read_only=True)
     raffle_state = StateRaffleSerializer(read_only=True)
     raffle_created_by = UserBasicSerializer(read_only=True)
@@ -74,10 +69,6 @@ class RaffleListSerializer(serializers.ModelSerializer):
         ]
 
 class RaffleUpdateSerializer(serializers.ModelSerializer):
-    """
-    Serializer SEGURO para actualizar rifas
-    Solo permite modificar campos que no afecten la integridad del negocio
-    """
     raffle_image = serializers.ImageField(required=False)  # Opcional para actualizaciones
     
     class Meta:
@@ -92,9 +83,6 @@ class RaffleUpdateSerializer(serializers.ModelSerializer):
         ]
         
     def validate_raffle_draw_date(self, value):
-        """
-        Validación ESTRICTA para fecha del sorteo
-        """
         now = timezone.now()
         
         if value <= now:
@@ -110,9 +98,6 @@ class RaffleUpdateSerializer(serializers.ModelSerializer):
         return value
         
     def validate_raffle_minimum_numbers_sold(self, value):
-        """
-        Validación para números mínimos vendidos
-        """
         if self.instance:
             # No permitir aumentar el mínimo si ya se vendieron números
             numbers_sold = self.instance.numbers_sold  # Propiedad del modelo
@@ -130,9 +115,6 @@ class RaffleUpdateSerializer(serializers.ModelSerializer):
         return value
         
     def validate(self, data):
-        """
-        Validaciones globales de seguridad
-        """
         # Si existe la instancia, verificar que no esté en estado crítico
         if self.instance:
             # No permitir cambios si ya tiene ganador
@@ -181,10 +163,6 @@ class AdminRaffleUpdateSerializer(serializers.ModelSerializer):
 
 
 class RaffleSoftDeleteSerializer(serializers.ModelSerializer):
-    """
-    Serializer para soft delete de rifas
-    Cambia el estado de la rifa a inactivo en lugar de eliminarla físicamente
-    """
     
     class Meta:
         model = Raffle
@@ -192,9 +170,6 @@ class RaffleSoftDeleteSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
     
     def update(self, instance, validated_data):
-        """
-        Implementa el soft delete cambiando el estado a inactivo
-        """
         from raffleInfo.models import StateRaffle
         
         # Verificar que la rifa no tenga un ganador (ya fue sorteada)
@@ -206,18 +181,18 @@ class RaffleSoftDeleteSerializer(serializers.ModelSerializer):
         try:
             # Buscar estado inactivo por código
             inactive_state = StateRaffle.objects.filter(
-                state_raffle_code__iexact='INA'
+                state_raffle_code__iexact='CAN'
             ).first()
             
             if not inactive_state:
                 # Buscar por nombre si no encuentra por código
                 inactive_state = StateRaffle.objects.filter(
-                    state_raffle_name__icontains='inactiv'
+                    state_raffle_name__icontains='cancelad'
                 ).first()
             
             if not inactive_state:
                 raise serializers.ValidationError(
-                    "No se encontró un estado inactivo válido en el sistema"
+                    "No se encontró un estado cancelado válido en el sistema"
                 )
             
             # Cambiar estado a inactivo
@@ -233,10 +208,7 @@ class RaffleSoftDeleteSerializer(serializers.ModelSerializer):
     
 
 class RaffleDrawSerializer(serializers.ModelSerializer):
-    """
-    Serializer para ejecutar sorteo y mostrar resultados
-    Si la rifa ya fue sorteada, muestra información del ganador
-    """
+
     # Campos adicionales para mostrar información del sorteo
     winner_info = serializers.SerializerMethodField()
     draw_result = serializers.SerializerMethodField()
@@ -255,11 +227,11 @@ class RaffleDrawSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'raffle_name', 'raffle_state']
 
     def get_is_already_drawn(self, obj):
-        """Verificar si la rifa ya fue sorteada"""
+        #Verifica si la rifa ya fue sorteada
         return obj.raffle_winner is not None
     
     def get_winner_info(self, obj):
-        """Obtener información del ganador si existe"""
+        #Obtener información del ganador si ya fue sorteada
         if not obj.raffle_winner:
             return None
         
@@ -275,12 +247,10 @@ class RaffleDrawSerializer(serializers.ModelSerializer):
         }
     
     def get_draw_result(self, obj):
-        """Obtener resultados del último sorteo ejecutado (si está en context)"""
         # Este campo se llena cuando se ejecuta el sorteo
         return self.context.get('draw_result', None)
 
     def update(self, instance, validated_data):
-        """Ejecutar sorteo de la rifa"""
         # Verificar si ya fue sorteada
         if instance.raffle_winner:
             raise serializers.ValidationError({
@@ -303,7 +273,7 @@ class RaffleDrawSerializer(serializers.ModelSerializer):
             })
     
     def to_representation(self, instance):
-        """Personalizar la respuesta según si ya fue sorteada o se acaba de sortear"""
+        #Personalizar la respuesta según si ya fue sorteada o se acaba de sortear
         representation = super().to_representation(instance)
         
         # Si hay resultado de sorteo en el contexto (sorteo recién ejecutado)
@@ -330,9 +300,6 @@ class RaffleDrawSerializer(serializers.ModelSerializer):
 
 
 class AvailableNumbersSerializer(serializers.ModelSerializer):
-    """
-    Serializer para obtener números disponibles de una rifa
-    """
     numbers = serializers.SerializerMethodField()
     numbers_sold = serializers.IntegerField(read_only=True)
     numbers_available = serializers.IntegerField(read_only=True)
