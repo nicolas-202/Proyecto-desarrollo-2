@@ -16,6 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
+from django.conf import settings
+from django.conf.urls.static import static
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -27,4 +29,12 @@ urlpatterns = [
     path('api/v1/auth/', include('user.urls')),
     path('api/v1/location/', include('location.urls')),
     path('api/v1/user-info/', include('userInfo.urls')),
+    path('api/v1/interactions/', include('interactions.urls')),
+    path('api/v1/raffle-info/', include('raffleInfo.urls')),
+    path('api/v1/raffle/', include('raffle.urls')),
+    path('api/v1/tickets/', include('tickets.urls')),
 ]
+
+# Servir archivos media en desarrollo
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

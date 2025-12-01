@@ -42,9 +42,14 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
+    'core',  # Agregado para comandos de management
     'location',
     'userInfo',
     'user',
+    'interactions',
+    'raffleInfo',
+    'raffle',
+    'tickets',
 ]
 
 AUTH_USER_MODEL = 'user.User'
@@ -134,9 +139,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es-es'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Bogota'  # UTC-5, válido para Colombia
 
 USE_I18N = True
 
@@ -148,8 +153,35 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Media files (User uploaded content)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# CORS Configuration
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",  # Vite dev server
+    "http://127.0.0.1:5173",  # Alternative localhost
+]
+
+# Para desarrollo, también puedes usar:
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Solo permite todos los orígenes en desarrollo
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOWED_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 

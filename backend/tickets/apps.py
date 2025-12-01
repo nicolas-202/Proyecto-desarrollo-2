@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class RaflleinfoConfig(AppConfig):
+class TicketsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'raflleInfo'
+    name = 'tickets'
