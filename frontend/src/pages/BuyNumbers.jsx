@@ -100,8 +100,9 @@ function BuyNumbers(){
             return;
         }
 
-        // Si el usuario no está autenticado, redirigir a login
+        // Si el usuario no está autenticado, mostrar alerta y redirigir
         if (!isAuthenticated) {
+            alert('⚠️ Debes iniciar sesión para seleccionar números\n\nSerás redirigido a la página de autenticación.');
             navigate('/auth');
             return;
         }
@@ -624,6 +625,44 @@ function BuyNumbers(){
                 {rifa.raffle_state?.state_raffle_name === 'Activa' && (
                     <div style={{marginTop: '3rem'}}>
                         <h3>Selecciona tus números de la suerte</h3>
+                        
+                        {/* Mensaje para usuarios no autenticados */}
+                        {!isAuthenticated && (
+                            <div style={{
+                                background: 'linear-gradient(135deg, #3498DB 0%, #2980B9 100%)',
+                                borderRadius: '12px',
+                                padding: '1.5rem',
+                                marginBottom: '1.5rem',
+                                color: 'white',
+                                boxShadow: '0 4px 15px rgba(52, 152, 219, 0.3)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '1rem'
+                            }}>
+                                <div style={{fontSize: '2.5rem'}}>🔐</div>
+                                <div style={{flex: 1}}>
+                                    <h4 style={{margin: '0 0 0.5rem 0', fontSize: '1.3rem'}}>¿Quieres comprar números?</h4>
+                                    <p style={{margin: '0 0 1rem 0', opacity: 0.95}}>
+                                        Para participar en esta rifa necesitas iniciar sesión o crear una cuenta.
+                                    </p>
+                                    <button 
+                                        className="btn-primary" 
+                                        onClick={() => navigate('/auth')}
+                                        style={{
+                                            background: 'white',
+                                            color: '#2980B9',
+                                            padding: '0.8rem 2rem',
+                                            border: 'none',
+                                            fontWeight: 'bold',
+                                            fontSize: '1rem'
+                                        }}
+                                    >
+                                        ➜ Iniciar sesión / Registrarse
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        
                         <p style={{color: '#666', marginBottom: '1rem'}}>
                             Haz clic en los números que quieres comprar. Los números en gris ya están vendidos.
                         </p>

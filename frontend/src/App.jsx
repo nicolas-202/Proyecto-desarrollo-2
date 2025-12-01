@@ -18,11 +18,7 @@ function App() {
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Home />} />
           <Route path="auth" element={<Auth />} />
-          <Route path="raffle/:raffleId" element={
-            <ProtectedRoute>
-              <BuyNumbers />
-            </ProtectedRoute>
-          } />
+          <Route path="raffle/:raffleId" element={<BuyNumbers />} />
           <Route path="create-raffle" element={
             <ProtectedRoute>
               <CreateRaffle />
@@ -38,16 +34,8 @@ function App() {
               <MyNumbers />
             </ProtectedRoute>
           } />
-          <Route path="user/:userId" element={
-            <ProtectedRoute>
-              <UserProfile />
-            </ProtectedRoute>
-          } />
-          <Route path="search-users" element={
-            <ProtectedRoute>
-              <SearchUsers />
-            </ProtectedRoute>
-          } />
+          <Route path="user/:userId" element={<UserProfile />} />
+          <Route path="search-users" element={<SearchUsers />} />
         </Route>
       </Routes>
     </AuthProvider>

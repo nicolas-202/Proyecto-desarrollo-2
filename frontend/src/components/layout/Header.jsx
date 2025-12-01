@@ -58,6 +58,14 @@ function Header() {
             Descubre rifas
           </div>
 
+          {/* Buscar usuarios - Disponible para todos */}
+          <div 
+            className="nav-item" 
+            onClick={() => handleNavigate('/search-users')}
+          >
+            👥 Usuarios
+          </div>
+
           {/* Menú solo para usuarios autenticados */}
           {isAuthenticated && (
             <>
@@ -73,13 +81,6 @@ function Header() {
                 onClick={() => handleNavigate('/create-raffle')}
               >
                 Lanza tu rifa
-              </div>
-
-              <div 
-                className="nav-item" 
-                onClick={() => handleNavigate('/search-users')}
-              >
-                👥 Usuarios
               </div>
 
               <div 
