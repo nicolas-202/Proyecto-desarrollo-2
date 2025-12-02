@@ -1,6 +1,7 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from permissions.permissions import IsAdminUser
 from rest_framework.parsers import MultiPartParser, FormParser
 from .models import Raffle
 from .serializer import (
@@ -16,9 +17,7 @@ from raffleInfo.serializer import PrizeTypeSerializer, StateRaffleSerializer
 
 
 class RaffleCreateView(generics.CreateAPIView):
-    """
-    Vista para crear nuevas rifas únicamente
-    """
+
     serializer_class = RaffleCreateSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]  # Para manejar archivos de imagen
@@ -39,10 +38,7 @@ class RaffleCreateView(generics.CreateAPIView):
         }, status=status.HTTP_201_CREATED)
 
 class RaffleListView(generics.ListAPIView):
-    """
-    Vista para listar todas las rifas activas con detalles expandidos
-    Acceso público - no requiere autenticación
-    """
+
     serializer_class = RaffleListSerializer
     permission_classes = [AllowAny]  # Acceso público
     
@@ -69,10 +65,7 @@ class RaffleListView(generics.ListAPIView):
 
 
 class RaffleSoftDeleteView(generics.UpdateAPIView):
-    """
-    Vista para soft delete de rifas
-    Cambia el estado de la rifa a inactivo en lugar de eliminarla
-    """
+
     queryset = Raffle.objects.all()
     serializer_class = RaffleSoftDeleteSerializer
     permission_classes = [IsAuthenticated]
@@ -111,10 +104,7 @@ class RaffleSoftDeleteView(generics.UpdateAPIView):
 
 
 class RaffleDetailView(generics.RetrieveAPIView):
-    """
-    Vista para obtener el detalle de una rifa específica
-    Acceso público
-    """
+
     queryset = Raffle.objects.all().select_related('raffle_prize_type', 'raffle_state', 'raffle_created_by', 'raffle_winner')
     serializer_class = RaffleListSerializer
     permission_classes = [AllowAny]
@@ -122,10 +112,7 @@ class RaffleDetailView(generics.RetrieveAPIView):
 
 
 class RaffleUpdateView(generics.UpdateAPIView):
-    """
-    Vista para actualizar rifas existentes
-    Solo el creador puede actualizar
-    """
+
     queryset = Raffle.objects.all()
     serializer_class = RaffleUpdateSerializer
     permission_classes = [IsAuthenticated]
@@ -169,17 +156,12 @@ class RaffleUpdateView(generics.UpdateAPIView):
         return self.update(request, *args, **kwargs)
 
 class RaffleUserListView(generics.ListAPIView):
-    """
-    Vista pública para ver rifas de un usuario específico
-    Puede incluir rifas inactivas si el usuario autenticado es el mismo
-    """
+
     serializer_class = RaffleListSerializer
     permission_classes = [AllowAny]
     
     def get_queryset(self):
-        """
-        Retorna rifas de un usuario específico
-        """
+
         user_id = self.kwargs.get('user_id')
         include_inactive = self.request.query_params.get('include_inactive', 'false').lower() == 'true'
         
@@ -207,9 +189,7 @@ class RaffleUserListView(generics.ListAPIView):
         return queryset.order_by('-raffle_created_at')
     
     def _is_same_user(self, user_id):
-        """
-        Verifica si el usuario autenticado es el mismo que se está consultando
-        """
+
         if not self.request.user.is_authenticated:
             return False
         
@@ -220,10 +200,7 @@ class RaffleUserListView(generics.ListAPIView):
 
 
 class AdminRaffleCancelView(generics.UpdateAPIView):
-    """
-    Vista EXCLUSIVA para administradores
-    Permite cancelar rifas con reembolsos por razones administrativas
-    """
+
     queryset = Raffle.objects.all()
     permission_classes = [IsAdminUser]  # Solo administradores
     lookup_field = 'pk'
@@ -259,10 +236,7 @@ class AdminRaffleCancelView(generics.UpdateAPIView):
         
 
 class RaffleDrawView(generics.UpdateAPIView):
-    """
-    Vista para ejecutar sorteo de rifas
-    Solo el organizador de la rifa puede ejecutar el sorteo
-    """
+
     queryset = Raffle.objects.all()
     serializer_class = RaffleDrawSerializer
     permission_classes = [IsAdminUser]
@@ -272,26 +246,39 @@ class RaffleDrawView(generics.UpdateAPIView):
         """Ejecutar sorteo de la rifa"""
         instance = self.get_object()
         
-        try:
-            serializer = self.get_serializer(instance, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            raffle, result = serializer.save()
-            
+        # Si la rifa ya fue sorteada, devolver información del ganador
+        if instance.raffle_winner:
+            serializer = self.get_serializer(instance)
             return Response({
-                'message': 'Sorteo ejecutado exitosamente',
-                'draw_results': result
+                'message': 'Esta rifa ya fue sorteada',
+                'is_already_drawn': True,
+                'raffle_info': serializer.data
             }, status=status.HTTP_200_OK)
+        
+        try:
+            # Ejecutar sorteo
+            serializer = self.get_serializer(
+                instance, 
+                data=request.data, 
+                partial=True,
+                context={'request': request}
+            )
+            serializer.is_valid(raise_exception=True)
+            updated_instance = serializer.save()
+            
+            # Serializar con el resultado del sorteo
+            result_serializer = self.get_serializer(updated_instance)
+            
+            return Response(result_serializer.data, status=status.HTTP_200_OK)
             
         except Exception as e:
             return Response({
-                'error': f'Error al ejecutar sorteo: {str(e)}'
+                'error': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AvailableNumbersView(generics.RetrieveAPIView):
-    """
-    Vista pública para obtener números disponibles de una rifa
-    """
+
     queryset = Raffle.objects.all()
     serializer_class = AvailableNumbersSerializer
     permission_classes = [AllowAny]

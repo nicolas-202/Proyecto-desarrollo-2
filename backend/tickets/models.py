@@ -4,9 +4,7 @@ from django.utils import timezone
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 import random
-
 from user.models import User
-from raffle.models import Raffle
 from userInfo.models import PaymentMethod
 
 
@@ -19,7 +17,7 @@ class Ticket(models.Model):
     )
     
     raffle = models.ForeignKey(
-        Raffle,
+        'raffle.Raffle',
         on_delete=models.CASCADE,
         related_name='sold_tickets',
         verbose_name='Rifa'
@@ -71,8 +69,8 @@ class Ticket(models.Model):
         winner = " 🏆" if self.is_winner else ""
         return f'#{self.number:03d} - {self.raffle.raffle_name} - {self.user.email} ({self.payment_method.payment_method_type}){winner}'
 
-    @classmethod 
-    def purchase_ticket(cls, user, raffle, number, payment_method): #Compra un ticket validando saldo y descontando dinero
+    @classmethod
+    def purchase_ticket(cls, user, raffle, number, payment_method):
         # Validar que el método de pago pertenezca al usuario
         if payment_method.user != user:
             raise ValidationError("El método de pago no pertenece al usuario")
@@ -82,10 +80,24 @@ class Ticket(models.Model):
         # Validar número disponible
         if number not in raffle.available_numbers:
             raise ValidationError(f"El número {number} no está disponible")
-        # Descontar dinero del método de pago
-        success = payment_method.deduct_balance(raffle.raffle_number_price)
-        if not success:
-            raise ValidationError("Error al procesar el pago")
+
+        # Buscar cuenta conjunta de admin
+        from user.models import User
+        from userInfo.models import PaymentMethod
+        try:
+            admin_user = User.objects.filter(document_number="0000000000").first()
+            if not admin_user:
+                raise ValidationError("No existe usuario admin con identificación 0000000000 para cuenta conjunta")
+            admin_account = PaymentMethod.objects.filter(user=admin_user, payment_method_is_active=True).first()
+            if not admin_account:
+                raise ValidationError("No existe método de pago activo para admin")
+            success = payment_method.deduct_balance(raffle.raffle_number_price)
+            if success:
+                admin_account.add_balance(raffle.raffle_number_price)
+            else:
+                raise ValidationError("Error al procesar el pago")
+        except Exception as e:
+            raise ValidationError(f"Error en cuenta conjunta admin: {e}")
         # Crear el ticket
         ticket = cls.objects.create(
             user=user,
@@ -93,14 +105,25 @@ class Ticket(models.Model):
             number=number,
             payment_method=payment_method
         )
-        
         return ticket
     
     def refund_ticket(self): 
 
-        # Devolver dinero al método de pago original
-        self.payment_method.add_balance(self.raffle.raffle_number_price)
-        
+        from user.models import User
+        from userInfo.models import PaymentMethod
+        try:
+            admin_user = User.objects.filter(document_number="0000000000").first()
+            if not admin_user:
+                raise ValidationError("No existe usuario admin con identificación 0000000000 para cuenta conjunta")
+            admin_account = PaymentMethod.objects.filter(user=admin_user, payment_method_is_active=True).first()
+            if not admin_account:
+                raise ValidationError("No existe método de pago activo para admin")
+            # Restar dinero de la cuenta conjunta
+            admin_account.deduct_balance(self.raffle.raffle_number_price)
+            # Devolver dinero al método de pago original
+            self.payment_method.add_balance(self.raffle.raffle_number_price)
+        except Exception as e:
+            raise ValidationError(f"Error en cuenta conjunta admin: {e}")
         # Eliminar ticket de la base de datos
         self.delete()
         

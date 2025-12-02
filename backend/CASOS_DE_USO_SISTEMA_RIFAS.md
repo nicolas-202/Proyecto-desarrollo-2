@@ -4,13 +4,51 @@
 
 Este documento presenta el análisis completo de casos de uso del sistema de rifas online basado en Django REST Framework. El sistema permite la gestión integral de rifas, usuarios, tickets y transacciones con un enfoque en la seguridad y transparencia.
 
+**🔒 SISTEMA DE ESCROW (CUENTA CONJUNTA)**: El sistema utiliza una cuenta administrada centralmente que actúa como escrow/garantía. Todo el dinero de las ventas de tickets se deposita en esta cuenta conjunta, asegurando que siempre haya fondos disponibles para premios y reembolsos. Este diseño protege a los participantes y garantiza la integridad del sistema.
+
 ## ARQUITECTURA DEL SISTEMA
+
+### 💰 FLUJO FINANCIERO (SISTEMA DE ESCROW)
+
+El sistema implementa un **modelo de cuenta conjunta** que actúa como escrow para garantizar la seguridad de todas las transacciones:
+
+#### **Compra de Tickets:**
+```
+Comprador → [Método de Pago] → CUENTA CONJUNTA (Escrow)
+```
+- Todo el dinero de ventas se deposita en la cuenta administrada por el sistema
+- Garantiza disponibilidad de fondos para premios y reembolsos
+- Proporciona auditoría centralizada de todas las transacciones
+
+#### **Sorteo Exitoso con Ganancias:**
+```
+INGRESOS > PREMIO:
+Cuenta Conjunta → Ganador (premio)
+Cuenta Conjunta → Organizador (ganancias)
+```
+
+#### **Sorteo con Déficit:**
+```
+INGRESOS < PREMIO:
+1. Sistema valida: ¿Organizador tiene fondos para cubrir déficit?
+2. SI → Organizador → Cuenta Conjunta (cubre déficit)
+        Cuenta Conjunta → Ganador (premio completo)
+3. NO → Sistema cancela rifa automáticamente
+        Cuenta Conjunta → Todos los compradores (reembolso total)
+```
+
+#### **Ventajas del Sistema de Escrow:**
+- ✅ **Protección total de participantes**: Siempre hay fondos disponibles
+- ✅ **Prevención de fraude**: El organizador no puede manipular fondos antes del sorteo
+- ✅ **Auditoría centralizada**: Todas las transacciones son rastreables
+- ✅ **Reembolsos garantizados**: Si algo falla, los participantes recuperan su dinero
+- ✅ **Responsabilidad del organizador**: Debe cubrir déficits o la rifa se cancela
 
 ### Módulos Principales:
 - **User Management**: Gestión de usuarios y autenticación
 - **Raffle Management**: Creación y administración de rifas
 - **Ticket Management**: Compra y gestión de tickets
-- **Payment Management**: Métodos de pago y transacciones
+- **Payment Management**: Métodos de pago y transacciones (incluye cuenta conjunta)
 - **Interaction Management**: Sistema de calificaciones entre usuarios
 - **Location Management**: Gestión geográfica
 - **Admin Management**: Funciones administrativas
@@ -575,18 +613,24 @@ El organizador ejecuta el sorteo. El sistema verifica condiciones, selecciona ga
 | 2 | | Sistema verifica mínimo de números vendidos |
 | 3 | | Sistema verifica rifa en estado activo |
 | 4 | | Sistema verifica no sorteada previamente |
-| 5 | Confirma ejecución de sorteo | Sistema obtiene todos los tickets participantes |
-| 6 | | Sistema genera número aleatorio criptográfico |
-| 7 | | Sistema selecciona ticket ganador |
-| 8 | | Sistema inicia transacción |
-| 9 | | Sistema marca ticket como ganador |
-| 10 | | Sistema actualiza rifa con datos del ganador |
-| 11 | | Sistema cambia estado a "Sorteada" |
-| 12 | | Sistema registra auditoría del sorteo |
-| 13 | | Sistema confirma transacción |
-| 14 | | Sistema notifica al ganador |
-| 15 | | Sistema notifica a todos los participantes |
-| 16 | Recibe resultados | Sistema muestra datos del ganador |
+| 5 | | Sistema calcula ganancias/déficit (ingresos - premio) |
+| 6 | | Si déficit: Sistema valida saldo del organizador |
+| 7 | | Si organizador sin fondos: Sistema cancela y reembolsa automáticamente |
+| 8 | Confirma ejecución de sorteo | Sistema obtiene todos los tickets participantes |
+| 9 | | Sistema genera número aleatorio criptográfico |
+| 10 | | Sistema selecciona ticket ganador |
+| 11 | | Sistema inicia transacción |
+| 12 | | Si déficit: Organizador transfiere déficit a cuenta conjunta |
+| 13 | | Sistema paga premio al ganador desde cuenta conjunta |
+| 14 | | Si ganancias positivas: Sistema paga ganancias al organizador desde cuenta conjunta |
+| 15 | | Sistema marca ticket como ganador |
+| 16 | | Sistema actualiza rifa con datos del ganador |
+| 17 | | Sistema cambia estado a "Sorteada" |
+| 18 | | Sistema registra auditoría del sorteo |
+| 19 | | Sistema confirma transacción |
+| 20 | | Sistema notifica al ganador |
+| 21 | | Sistema notifica a todos los participantes |
+| 22 | Recibe resultados | Sistema muestra datos del ganador |
 
 #### **Cursos Alternos**
 | **Paso** | **Condición** | **Acción** |
@@ -595,7 +639,10 @@ El organizador ejecuta el sorteo. El sistema verifica condiciones, selecciona ga
 | 2A | Mínimo no alcanzado | Sistema muestra "Mínimo de números no vendidos" |
 | 3A | Rifa no activa | Sistema impide sorteo |
 | 4A | Ya sorteada | Sistema muestra "Rifa ya sorteada" |
-| 8A | Error en transacción | Sistema rollback completo |
+| 6A | Organizador sin saldo para déficit | Sistema cancela rifa automáticamente |
+| 6B | Déficit detectado | Sistema reembolsa todos los tickets desde cuenta conjunta |
+| 6C | Cancelación por déficit | Sistema cambia estado a "Cancelada" y notifica |
+| 11A | Error en transacción | Sistema rollback completo |
 
 #### **Otros datos**
 | **Frecuencia esperada** | Baja | **Rendimiento** | < 5 segundos |
@@ -605,8 +652,12 @@ El organizador ejecuta el sorteo. El sistema verifica condiciones, selecciona ga
 
 #### **Comentarios**
 - Algoritmo aleatorio criptográficamente seguro
+- **Sistema de escrow**: La cuenta conjunta garantiza fondos para premios
+- **Validación de déficit**: Si el organizador no puede cubrir la diferencia, la rifa se cancela automáticamente ANTES del sorteo
+- **Protección de participantes**: Reembolso automático garantizado si hay problemas
 - Proceso auditado completamente
 - Notificaciones automáticas a todos los participantes
+- El organizador solo recibe ganancias si son positivas; debe cubrir déficits si son negativos
 
 ### **CU-011: CANCELACIÓN ADMINISTRATIVA DE RIFA**
 
@@ -695,12 +746,13 @@ El usuario selecciona una rifa activa, elige un número disponible y método de 
 | 6 | | Sistema verifica número disponible |
 | 7 | | Sistema valida saldo suficiente |
 | 8 | | Sistema inicia transacción |
-| 9 | | Sistema descuenta saldo del método |
-| 10 | | Sistema crea ticket |
-| 11 | | Sistema actualiza estadísticas de rifa |
-| 12 | | Sistema confirma transacción |
-| 13 | | Sistema envía notificación |
-| 14 | Recibe confirmación | Sistema muestra ticket comprado |
+| 9 | | Sistema descuenta saldo del método del comprador |
+| 10 | | Sistema transfiere dinero a CUENTA CONJUNTA (escrow) |
+| 11 | | Sistema crea ticket asociado a la rifa |
+| 12 | | Sistema actualiza estadísticas de rifa |
+| 13 | | Sistema confirma transacción |
+| 14 | | Sistema envía notificación |
+| 15 | Recibe confirmación | Sistema muestra ticket comprado |
 
 #### **Cursos Alternos**
 | **Paso** | **Condición** | **Acción** |
@@ -718,8 +770,10 @@ El usuario selecciona una rifa activa, elige un número disponible y método de 
 
 #### **Comentarios**
 - Transacción atómica para integridad de datos
+- **Cuenta conjunta como ESCROW**: El dinero se deposita en una cuenta administrada por el sistema que garantiza fondos para premios y reembolsos
 - Validaciones múltiples para evitar conflictos
 - Notificaciones inmediatas al usuario
+- Protección total de participantes mediante sistema de garantía
 
 ### **CU-013: CONSULTA DE TICKETS**
 

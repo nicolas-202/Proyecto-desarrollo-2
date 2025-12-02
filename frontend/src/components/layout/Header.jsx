@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 function Header() {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout, isAdmin, isLoading } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleNavigate = (path) => {
     navigate(path);
+    setMobileMenuOpen(false); // Cerrar menú móvil al navegar
   };
 
   // Mostrar loading si aún se está verificando la autenticación
@@ -33,13 +36,34 @@ function Header() {
           🎰 RifaPlus
         </div>
 
+        {/* Botón hamburguesa para móvil */}
+        <button 
+          className="mobile-menu-btn"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          <span className={`hamburger ${mobileMenuOpen ? 'open' : ''}`}>
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </button>
+
         {/* Menú de navegación */}
-        <div className="nav-menu">
+        <div className={`nav-menu ${mobileMenuOpen ? 'mobile-open' : ''}`}>
           <div 
             className="nav-item active" 
             onClick={() => handleNavigate('/')}
           >
             Descubre rifas
+          </div>
+
+          {/* Buscar usuarios - Disponible para todos */}
+          <div 
+            className="nav-item" 
+            onClick={() => handleNavigate('/search-users')}
+          >
+            👥 Usuarios
           </div>
 
           {/* Menú solo para usuarios autenticados */}
@@ -54,7 +78,7 @@ function Header() {
 
               <div 
                 className="nav-item" 
-                onClick={() => handleNavigate('/create-rifa')}
+                onClick={() => handleNavigate('/create-raffle')}
               >
                 Lanza tu rifa
               </div>
@@ -95,7 +119,7 @@ function Header() {
             <div id="nav-user">
               <div 
                 className="nav-item" 
-                onClick={() => handleNavigate('/profile')}
+                onClick={() => handleNavigate(`/user/${user?.id}`)}
               >
                 👤 {user?.first_name || 'Mi perfil'}
               </div>
