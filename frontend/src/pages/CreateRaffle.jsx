@@ -199,45 +199,31 @@ function CreateRaffle() {
     setLoading(true);
 
     try {
-      // Si hay imagen, usar FormData (para enviar archivos)
-      // Si no, enviar JSON normal
-      let requestData;
-      let headers = {};
-
+      // Siempre usar FormData para que sea consistente con el backend
+      const requestData = new FormData();
+      requestData.append('raffle_name', formData.raffle_name);
+      requestData.append('raffle_description', formData.raffle_description);
+      requestData.append('raffle_prize_amount', formData.raffle_prize_amount);
+      requestData.append('raffle_number_price', formData.raffle_number_price);
+      requestData.append('raffle_number_amount', formData.raffle_number_amount);
+      requestData.append('raffle_minimum_numbers_sold', formData.raffle_minimum_numbers_sold);
+      requestData.append('raffle_draw_date', formData.raffle_draw_date);
+      requestData.append('raffle_prize_type', formData.raffle_prize_type);
+      requestData.append('raffle_creator_payment_method', formData.raffle_creator_payment_method);
+      
+      // Solo agregar imagen si existe
       if (formData.raffle_image) {
-        // FormData permite enviar archivos
-        requestData = new FormData();
-        requestData.append('raffle_name', formData.raffle_name);
-        requestData.append('raffle_description', formData.raffle_description);
-        requestData.append('raffle_prize_amount', formData.raffle_prize_amount);
-        requestData.append('raffle_number_price', formData.raffle_number_price);
-        requestData.append('raffle_number_amount', formData.raffle_number_amount);
-        requestData.append('raffle_minimum_numbers_sold', formData.raffle_minimum_numbers_sold);
-        requestData.append('raffle_draw_date', formData.raffle_draw_date);
-        requestData.append('raffle_prize_type', formData.raffle_prize_type);
-        requestData.append('raffle_creator_payment_method', formData.raffle_creator_payment_method);
         requestData.append('raffle_image', formData.raffle_image);
-        
-        // Para FormData, dejar que axios configure el Content-Type automáticamente
-        headers['Content-Type'] = 'multipart/form-data';
-      } else {
-        // Sin imagen, enviar JSON normal
-        requestData = {
-          raffle_name: formData.raffle_name,
-          raffle_description: formData.raffle_description,
-          raffle_prize_amount: parseFloat(formData.raffle_prize_amount),
-          raffle_number_price: parseFloat(formData.raffle_number_price),
-          raffle_number_amount: parseInt(formData.raffle_number_amount),
-          raffle_minimum_numbers_sold: parseInt(formData.raffle_minimum_numbers_sold),
-          raffle_draw_date: formData.raffle_draw_date,
-          raffle_prize_type: parseInt(formData.raffle_prize_type),
-          raffle_creator_payment_method: parseInt(formData.raffle_creator_payment_method)
-        };
       }
 
       // ========== PETICIÓN AL BACKEND ==========
       // apiClient automáticamente agrega el token JWT (ver authService.js)
-      const response = await apiClient.post('/raffle/create/', requestData, { headers });
+      // Para FormData, dejar que axios configure el Content-Type automáticamente
+      const response = await apiClient.post('/raffle/create/', requestData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
 
       // ========== ÉXITO ==========
       showMessage('¡Rifa creada con éxito! 🎉 Redirigiendo...', 'success');
