@@ -14,8 +14,9 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
-from django.urls import path,include
+from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import (
@@ -24,15 +25,14 @@ from rest_framework_simplejwt.views import (
 )
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-
-    path('api/v1/auth/', include('user.urls')),
-    path('api/v1/location/', include('location.urls')),
-    path('api/v1/user-info/', include('userInfo.urls')),
-    path('api/v1/interactions/', include('interactions.urls')),
-    path('api/v1/raffle-info/', include('raffleInfo.urls')),
-    path('api/v1/raffle/', include('raffle.urls')),
-    path('api/v1/tickets/', include('tickets.urls')),
+    path("admin/", admin.site.urls),
+    path("api/v1/auth/", include("user.urls")),
+    path("api/v1/location/", include("location.urls")),
+    path("api/v1/user-info/", include("userInfo.urls")),
+    path("api/v1/interactions/", include("interactions.urls")),
+    path("api/v1/raffle-info/", include("raffleInfo.urls")),
+    path("api/v1/raffle/", include("raffle.urls")),
+    path("api/v1/tickets/", include("tickets.urls")),
 ]
 
 # Servir archivos media en desarrollo

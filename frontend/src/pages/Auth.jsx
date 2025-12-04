@@ -5,16 +5,16 @@ import { authService } from '../services/authService';
 const Auth = () => {
   const navigate = useNavigate();
   const { login, register, isAuthenticated, isLoading, error, clearError } = useAuth();
-  
+
   // Estado para las pestañas
   const [activeTab, setActiveTab] = useState('login');
-  
+
   // Estados para los formularios
   const [loginData, setLoginData] = useState({
     email: '',
-    password: ''
+    password: '',
   });
-  
+
   const [registerData, setRegisterData] = useState({
     email: '',
     password: '',
@@ -28,9 +28,9 @@ const Auth = () => {
     state: '',
     city: '',
     gender: '',
-    document_type: ''
+    document_type: '',
   });
-  
+
   // Estado para opciones del formulario de registro
   const [formOptions, setFormOptions] = useState({
     countries: [],
@@ -38,13 +38,13 @@ const Auth = () => {
     cities: [],
     genders: [],
     documentTypes: [],
-    loading: true
+    loading: true,
   });
-  
+
   // Estados para mensajes
   const [messages, setMessages] = useState({
     login: { text: '', type: '', show: false },
-    register: { text: '', type: '', show: false }
+    register: { text: '', type: '', show: false },
   });
 
   // Si ya está autenticado, redirigir
@@ -61,7 +61,7 @@ const Auth = () => {
         const [countriesRes, gendersRes, docTypesRes] = await Promise.all([
           authService.getCountries(),
           authService.getGenders(),
-          authService.getDocumentTypes()
+          authService.getDocumentTypes(),
         ]);
 
         setFormOptions({
@@ -70,7 +70,7 @@ const Auth = () => {
           cities: [],
           genders: gendersRes.results || gendersRes || [],
           documentTypes: docTypesRes.results || docTypesRes || [],
-          loading: false
+          loading: false,
         });
       } catch (error) {
         console.error('Error cargando opciones:', error);
@@ -82,13 +82,13 @@ const Auth = () => {
   }, []);
 
   // Cargar estados cuando se selecciona un país
-  const handleCountryChange = async (e) => {
+  const handleCountryChange = async e => {
     const countryId = e.target.value;
-    setRegisterData(prev => ({ 
-      ...prev, 
+    setRegisterData(prev => ({
+      ...prev,
       country: countryId,
       state: '', // Reset state
-      city: ''   // Reset city
+      city: '', // Reset city
     }));
 
     if (countryId) {
@@ -97,7 +97,7 @@ const Auth = () => {
         setFormOptions(prev => ({
           ...prev,
           states: statesRes.results || statesRes || [],
-          cities: [] // Reset cities
+          cities: [], // Reset cities
         }));
       } catch (error) {
         console.error('Error cargando estados:', error);
@@ -109,12 +109,12 @@ const Auth = () => {
   };
 
   // Cargar ciudades cuando se selecciona un estado
-  const handleStateChange = async (e) => {
+  const handleStateChange = async e => {
     const stateId = e.target.value;
-    setRegisterData(prev => ({ 
-      ...prev, 
+    setRegisterData(prev => ({
+      ...prev,
       state: stateId,
-      city: '' // Reset city
+      city: '', // Reset city
     }));
 
     if (stateId) {
@@ -122,7 +122,7 @@ const Auth = () => {
         const citiesRes = await authService.getCities(stateId);
         setFormOptions(prev => ({
           ...prev,
-          cities: citiesRes.results || citiesRes || []
+          cities: citiesRes.results || citiesRes || [],
         }));
       } catch (error) {
         console.error('Error cargando ciudades:', error);
@@ -137,45 +137,45 @@ const Auth = () => {
   const showMessage = (tab, message, type) => {
     setMessages(prev => ({
       ...prev,
-      [tab]: { text: message, type, show: true }
+      [tab]: { text: message, type, show: true },
     }));
-    
+
     setTimeout(() => {
       setMessages(prev => ({
         ...prev,
-        [tab]: { ...prev[tab], show: false }
+        [tab]: { ...prev[tab], show: false },
       }));
     }, 3000);
   };
 
   // Manejar cambio de pestañas
-  const switchTab = (tab) => {
+  const switchTab = tab => {
     setActiveTab(tab);
     clearError();
     setMessages({
       login: { text: '', type: '', show: false },
-      register: { text: '', type: '', show: false }
+      register: { text: '', type: '', show: false },
     });
   };
 
   // Manejar cambios en formulario de login
-  const handleLoginChange = (e) => {
+  const handleLoginChange = e => {
     const { name, value } = e.target;
     setLoginData(prev => ({ ...prev, [name]: value }));
     if (error) clearError();
   };
 
   // Manejar cambios en formulario de registro
-  const handleRegisterChange = (e) => {
+  const handleRegisterChange = e => {
     const { name, value } = e.target;
     setRegisterData(prev => ({ ...prev, [name]: value }));
     if (error) clearError();
   };
 
   // Manejar envío de login
-  const handleLogin = async (e) => {
+  const handleLogin = async e => {
     e.preventDefault();
-    
+
     if (!loginData.email || !loginData.password) {
       showMessage('login', 'Completa todos los campos 📝', 'error');
       return;
@@ -183,7 +183,7 @@ const Auth = () => {
 
     const result = await login({
       email: loginData.email.trim(),
-      password: loginData.password
+      password: loginData.password,
     });
 
     if (result.success) {
@@ -197,14 +197,22 @@ const Auth = () => {
   };
 
   // Manejar envío de registro
-  const handleRegister = async (e) => {
+  const handleRegister = async e => {
     e.preventDefault();
-    
+
     // Validaciones básicas
-    if (!registerData.email || !registerData.password || !registerData.first_name || 
-        !registerData.last_name || !registerData.country || !registerData.state || 
-        !registerData.city || !registerData.document_type || !registerData.document_number || 
-        !registerData.gender) {
+    if (
+      !registerData.email ||
+      !registerData.password ||
+      !registerData.first_name ||
+      !registerData.last_name ||
+      !registerData.country ||
+      !registerData.state ||
+      !registerData.city ||
+      !registerData.document_type ||
+      !registerData.document_number ||
+      !registerData.gender
+    ) {
       showMessage('register', 'Completa todos los campos obligatorios 📝', 'error');
       return;
     }
@@ -222,7 +230,11 @@ const Auth = () => {
     const result = await register(registerData);
 
     if (result.success) {
-      showMessage('register', '¡Cuenta creada con éxito! 🎉 Ya puedes entrar a tu cuenta', 'success');
+      showMessage(
+        'register',
+        '¡Cuenta creada con éxito! 🎉 Ya puedes entrar a tu cuenta',
+        'success'
+      );
       setTimeout(() => {
         switchTab('login');
         setLoginData(prev => ({ ...prev, email: registerData.email }));
@@ -236,20 +248,22 @@ const Auth = () => {
     <div className="module-container active">
       {/* Breadcrumbs */}
       <div className="breadcrumbs">
-        <div className="breadcrumb-item" onClick={() => navigate('/')}>Inicio</div>
+        <div className="breadcrumb-item" onClick={() => navigate('/')}>
+          Inicio
+        </div>
         <div className="breadcrumb-separator">&gt;</div>
         <div className="breadcrumb-item">Entrar o registrarse</div>
       </div>
-      
+
       {/* Pestañas */}
       <div className="tabs">
-        <div 
+        <div
           className={`tab ${activeTab === 'login' ? 'active' : ''}`}
           onClick={() => switchTab('login')}
         >
           Entrar
         </div>
-        <div 
+        <div
           className={`tab ${activeTab === 'register' ? 'active' : ''}`}
           onClick={() => switchTab('register')}
         >
@@ -260,25 +274,19 @@ const Auth = () => {
       {/* Contenido de Login */}
       <div className={`tab-content ${activeTab === 'login' ? 'active' : ''}`}>
         <div className="form-container">
-          <h2 style={{textAlign: 'center', marginBottom: '2rem'}}>¡Bienvenido de nuevo! 👋</h2>
+          <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>¡Bienvenido de nuevo! 👋</h2>
           <div className="guidance-text">
             Ingresa tus datos para acceder a tu cuenta y continuar con la diversión.
           </div>
-          
+
           {/* Mensaje de login */}
           {messages.login.show && (
-            <div className={`message ${messages.login.type} show`}>
-              {messages.login.text}
-            </div>
+            <div className={`message ${messages.login.type} show`}>{messages.login.text}</div>
           )}
-          
+
           {/* Error del contexto */}
-          {error && activeTab === 'login' && (
-            <div className="message error show">
-              {error}
-            </div>
-          )}
-          
+          {error && activeTab === 'login' && <div className="message error show">{error}</div>}
+
           <form onSubmit={handleLogin}>
             <div className="form-group">
               <label className="form-label">Tu correo electrónico</label>
@@ -306,10 +314,10 @@ const Auth = () => {
                 required
               />
             </div>
-            <button 
-              type="submit" 
-              className="btn-primary" 
-              style={{width: '100%'}}
+            <button
+              type="submit"
+              className="btn-primary"
+              style={{ width: '100%' }}
               disabled={isLoading}
             >
               {isLoading ? 'Entrando...' : 'Entrar a mi cuenta'}
@@ -321,27 +329,21 @@ const Auth = () => {
       {/* Contenido de Registro */}
       <div className={`tab-content ${activeTab === 'register' ? 'active' : ''}`}>
         <div className="form-container">
-          <h2 style={{textAlign: 'center', marginBottom: '2rem'}}>¡Únete a la comunidad! 🎉</h2>
+          <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>¡Únete a la comunidad! 🎉</h2>
           <div className="guidance-text">
             Crea tu cuenta en solo unos pasos y comienza a disfrutar de todas las rifas.
           </div>
-          
+
           {/* Mensaje de registro */}
           {messages.register.show && (
-            <div className={`message ${messages.register.type} show`}>
-              {messages.register.text}
-            </div>
+            <div className={`message ${messages.register.type} show`}>{messages.register.text}</div>
           )}
-          
+
           {/* Error del contexto */}
-          {error && activeTab === 'register' && (
-            <div className="message error show">
-              {error}
-            </div>
-          )}
-          
+          {error && activeTab === 'register' && <div className="message error show">{error}</div>}
+
           {formOptions.loading ? (
-            <div style={{textAlign: 'center', color: '#666', margin: '2rem 0'}}>
+            <div style={{ textAlign: 'center', color: '#666', margin: '2rem 0' }}>
               Cargando formulario... 🔄
             </div>
           ) : (
@@ -361,7 +363,7 @@ const Auth = () => {
                 />
               </div>
 
-              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem'}}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div className="form-group">
                   <label className="form-label">Crea una contraseña *</label>
                   <input
@@ -391,7 +393,7 @@ const Auth = () => {
               </div>
 
               {/* Información personal */}
-              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem'}}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div className="form-group">
                   <label className="form-label">Tu nombre *</label>
                   <input
@@ -420,7 +422,7 @@ const Auth = () => {
                 </div>
               </div>
 
-              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem'}}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div className="form-group">
                   <label className="form-label">Tipo de documento *</label>
                   <select
@@ -517,10 +519,9 @@ const Auth = () => {
                   required
                 >
                   <option value="">
-                    {!registerData.country 
-                      ? 'Primero selecciona un país...' 
-                      : 'Selecciona tu departamento/estado...'
-                    }
+                    {!registerData.country
+                      ? 'Primero selecciona un país...'
+                      : 'Selecciona tu departamento/estado...'}
                   </option>
                   {formOptions.states.map(state => (
                     <option key={state.id} value={state.id}>
@@ -541,10 +542,9 @@ const Auth = () => {
                   required
                 >
                   <option value="">
-                    {!registerData.state 
-                      ? 'Primero selecciona un departamento/estado...' 
-                      : 'Selecciona tu ciudad...'
-                    }
+                    {!registerData.state
+                      ? 'Primero selecciona un departamento/estado...'
+                      : 'Selecciona tu ciudad...'}
                   </option>
                   {formOptions.cities.map(city => (
                     <option key={city.id} value={city.id}>
@@ -568,10 +568,10 @@ const Auth = () => {
                 />
               </div>
 
-              <button 
-                type="submit" 
-                className="btn-primary" 
-                style={{width: '100%'}}
+              <button
+                type="submit"
+                className="btn-primary"
+                style={{ width: '100%' }}
                 disabled={isLoading}
               >
                 {isLoading ? 'Creando cuenta...' : 'Crear mi cuenta'}

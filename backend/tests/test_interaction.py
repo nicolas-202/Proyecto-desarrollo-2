@@ -1,44 +1,37 @@
 import pytest
-from rest_framework.test import APITestCase
 from django.urls import reverse
 from rest_framework import status
-from user.models import User
+from rest_framework.test import APITestCase
+
 from interactions.models import Interaction
-from location.models import Country, State, City
-from userInfo.models import Gender, DocumentType
+from location.models import City, Country, State
+from user.models import User
+from userInfo.models import DocumentType, Gender
+
 
 class InteractionAPITestCase(APITestCase):
     """
     Tests para el sistema de interacciones
     """
-    
-    @classmethod    
+
+    @classmethod
     def setUpTestData(cls):
         """Crear datos comunes para todos los tests"""
         # Crear location
         cls.country = Country.objects.create(
-            country_name="TestCountry",
-            country_code="TC"
+            country_name="TestCountry", country_code="TC"
         )
         cls.state = State.objects.create(
-            state_name="TestState",
-            state_country=cls.country,
-            state_code="TS"
+            state_name="TestState", state_country=cls.country, state_code="TS"
         )
         cls.city = City.objects.create(
-            city_name="TestCity",
-            city_state=cls.state,
-            city_code="TCY"
+            city_name="TestCity", city_state=cls.state, city_code="TCY"
         )
 
         # Crear gender y document_type
-        cls.gender = Gender.objects.create(
-            gender_name="Non-Binary",
-            gender_code="NB"
-        )
+        cls.gender = Gender.objects.create(gender_name="Non-Binary", gender_code="NB")
         cls.document_type = DocumentType.objects.create(
-            document_type_name="Passport",
-            document_type_code="PP"
+            document_type_name="Passport", document_type_code="PP"
         )
 
         # Crear usuarios de prueba
@@ -50,9 +43,9 @@ class InteractionAPITestCase(APITestCase):
             gender=cls.gender,
             document_type=cls.document_type,
             document_number="11111111",
-            city=cls.city
+            city=cls.city,
         )
-        
+
         cls.user2 = User.objects.create_user(
             email="user2@test.com",
             password="testpass123",
@@ -61,7 +54,7 @@ class InteractionAPITestCase(APITestCase):
             gender=cls.gender,
             document_type=cls.document_type,
             document_number="22222222",
-            city=cls.city
+            city=cls.city,
         )
 
         cls.user3 = User.objects.create_user(
@@ -72,7 +65,7 @@ class InteractionAPITestCase(APITestCase):
             gender=cls.gender,
             document_type=cls.document_type,
             document_number="33333333",
-            city=cls.city
+            city=cls.city,
         )
 
     def setUp(self):
@@ -86,13 +79,13 @@ class InteractionAPITestCase(APITestCase):
 
     def test_list_interactions_anonymous(self):
         """Usuarios anónimos pueden ver interacciones"""
-        url = reverse('interaction-list')
+        url = reverse("interaction-list")
         Interaction.objects.create(
             interaction_source_user=self.user1,
             interaction_target_user=self.user2,
-            interaction_rating=4.0
+            interaction_rating=4.0,
         )
-        
+
         response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
@@ -100,25 +93,22 @@ class InteractionAPITestCase(APITestCase):
     def test_create_interaction_authenticated(self):
         """Usuario autenticado puede crear interacción"""
         self.client.force_authenticate(user=self.user1)
-        url = reverse('interaction-list')
+        url = reverse("interaction-list")
         data = {
-            'interaction_target_user': self.user2.id,
-            'interaction_rating': 4.0,
-            'interaction_comment': 'Great user!'
+            "interaction_target_user": self.user2.id,
+            "interaction_rating": 4.0,
+            "interaction_comment": "Great user!",
         }
-        
+
         response = self.client.post(url, data)
         assert response.status_code == status.HTTP_201_CREATED
         assert Interaction.objects.count() == 1
 
     def test_create_interaction_anonymous_fails(self):
         """Usuario anónimo no puede crear interacción"""
-        url = reverse('interaction-list')
-        data = {
-            'interaction_target_user': self.user2.id,
-            'interaction_rating': 4.0
-        }
-        
+        url = reverse("interaction-list")
+        data = {"interaction_target_user": self.user2.id, "interaction_rating": 4.0}
+
         response = self.client.post(url, data)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -128,15 +118,12 @@ class InteractionAPITestCase(APITestCase):
         Interaction.objects.create(
             interaction_source_user=self.user1,
             interaction_target_user=self.user2,
-            interaction_rating=4.0
+            interaction_rating=4.0,
         )
-        
-        url = reverse('interaction-list')
-        data = {
-            'interaction_target_user': self.user2.id,
-            'interaction_rating': 5.0
-        }
-        
+
+        url = reverse("interaction-list")
+        data = {"interaction_target_user": self.user2.id, "interaction_rating": 5.0}
+
         response = self.client.post(url, data)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -146,12 +133,12 @@ class InteractionAPITestCase(APITestCase):
         interaction = Interaction.objects.create(
             interaction_source_user=self.user1,
             interaction_target_user=self.user2,
-            interaction_rating=4.0
+            interaction_rating=4.0,
         )
-        
-        url = reverse('interaction-detail', args=[interaction.pk])
-        data = {'interaction_rating': 5.0}
-        
+
+        url = reverse("interaction-detail", args=[interaction.pk])
+        data = {"interaction_rating": 5.0}
+
         response = self.client.patch(url, data)
         assert response.status_code == status.HTTP_200_OK
         assert Interaction.objects.get().interaction_rating == 5.0
@@ -162,12 +149,12 @@ class InteractionAPITestCase(APITestCase):
         interaction = Interaction.objects.create(
             interaction_source_user=self.user1,
             interaction_target_user=self.user2,
-            interaction_rating=4.0
+            interaction_rating=4.0,
         )
-        
-        url = reverse('interaction-detail', args=[interaction.pk])
-        data = {'interaction_rating': 1.0}
-        
+
+        url = reverse("interaction-detail", args=[interaction.pk])
+        data = {"interaction_rating": 1.0}
+
         response = self.client.patch(url, data)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -177,12 +164,12 @@ class InteractionAPITestCase(APITestCase):
         interaction = Interaction.objects.create(
             interaction_source_user=self.user1,
             interaction_target_user=self.user2,
-            interaction_rating=4.0
+            interaction_rating=4.0,
         )
-        
-        url = reverse('interaction-detail', args=[interaction.pk])
+
+        url = reverse("interaction-detail", args=[interaction.pk])
         response = self.client.delete(url)
-        
+
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert Interaction.objects.count() == 0
 
@@ -192,33 +179,33 @@ class InteractionAPITestCase(APITestCase):
         interaction = Interaction.objects.create(
             interaction_source_user=self.user1,
             interaction_target_user=self.user2,
-            interaction_rating=4.0
+            interaction_rating=4.0,
         )
-        
-        url = reverse('interaction-detail', args=[interaction.pk])
+
+        url = reverse("interaction-detail", args=[interaction.pk])
         response = self.client.delete(url)
-        
+
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert Interaction.objects.count() == 1
 
     def test_get_user_rating(self):
         """Obtener promedio de calificaciones de un usuario"""
         self.client.force_authenticate(user=self.user1)
-        
+
         # Crear interacciones desde diferentes usuarios
         Interaction.objects.create(
             interaction_source_user=self.user1,
             interaction_target_user=self.user2,
-            interaction_rating=4.0
+            interaction_rating=4.0,
         )
         Interaction.objects.create(
             interaction_source_user=self.user3,
             interaction_target_user=self.user2,
-            interaction_rating=5.0
+            interaction_rating=5.0,
         )
-    
-        url = reverse('interaction-user-rating')
-        response = self.client.get(f'{url}?user_id={self.user2.id}')
-    
+
+        url = reverse("interaction-user-rating")
+        response = self.client.get(f"{url}?user_id={self.user2.id}")
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['average_rating'], 4.5)
+        self.assertEqual(response.data["average_rating"], 4.5)

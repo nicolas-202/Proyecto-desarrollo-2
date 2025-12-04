@@ -7,7 +7,7 @@ function Config() {
   const { isAdmin } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState(null);
 
-  <p>Aqui encontraras la pagina config</p>
+  <p>Aqui encontraras la pagina config</p>;
 }
 
 export default Config;

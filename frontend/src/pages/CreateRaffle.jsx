@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/authService';
 
 function CreateRaffle() {
-
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
@@ -13,18 +12,18 @@ function CreateRaffle() {
     raffle_description: '',
     raffle_prize_amount: '',
     raffle_number_price: '',
-    raffle_number_amount: 100, 
-    raffle_minimum_numbers_sold: '', 
+    raffle_number_amount: 100,
+    raffle_minimum_numbers_sold: '',
     raffle_draw_date: '',
     raffle_prize_type: '',
-    raffle_creator_payment_method: '', 
-    raffle_image: null 
+    raffle_creator_payment_method: '',
+    raffle_image: null,
   });
 
   // Estado para opciones de los selects (como formOptions en Auth.jsx)
   const [prizeTypes, setPrizeTypes] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]); // NUEVO: Métodos de pago del usuario
-  
+
   // Estados de UI (igual que en tus otras páginas)
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -50,17 +49,17 @@ function CreateRaffle() {
     const fetchInitialData = async () => {
       try {
         setLoadingData(true);
-        
+
         // Cargar tipos de premio y métodos de pago en paralelo
         const [prizeTypesResponse, paymentMethodsResponse] = await Promise.all([
           apiClient.get('/raffle-info/prizetype/'),
-          apiClient.get(`/user-info/payment-methods/`)
+          apiClient.get(`/user-info/payment-methods/`),
         ]);
-        
+
         // Tipos de premio
         const types = prizeTypesResponse.data.results || prizeTypesResponse.data || [];
         setPrizeTypes(types);
-        
+
         // Métodos de pago del usuario (NUEVO)
         // Tu API puede devolver array directo, {results: [...]} o un objeto único
         let methods = [];
@@ -68,20 +67,22 @@ function CreateRaffle() {
           methods = paymentMethodsResponse.data;
         } else if (Array.isArray(paymentMethodsResponse.data.results)) {
           methods = paymentMethodsResponse.data.results;
-        } else if (typeof paymentMethodsResponse.data === 'object' && paymentMethodsResponse.data !== null) {
+        } else if (
+          typeof paymentMethodsResponse.data === 'object' &&
+          paymentMethodsResponse.data !== null
+        ) {
           methods = [paymentMethodsResponse.data];
         }
-        
+
         setPaymentMethods(methods);
-        
+
         // Si solo tiene un método de pago, seleccionarlo automáticamente
         if (methods.length === 1) {
           setFormData(prev => ({
             ...prev,
-            raffle_creator_payment_method: methods[0].id
+            raffle_creator_payment_method: methods[0].id,
           }));
         }
-        
       } catch (error) {
         console.error('Error cargando datos iniciales:', error);
         showMessage('Error al cargar datos del formulario', 'error');
@@ -99,7 +100,7 @@ function CreateRaffle() {
   // ============================================
   // 5. FUNCIONES AUXILIARES
   // ============================================
-  
+
   /**
    * Mostrar mensajes temporales
    * Mismo patrón que showMessage en Auth.jsx
@@ -115,11 +116,11 @@ function CreateRaffle() {
    * Manejar cambios en inputs de texto/número/select
    * Similar a handleRegisterChange en Auth.jsx
    */
-  const handleInputChange = (e) => {
+  const handleInputChange = e => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -127,7 +128,7 @@ function CreateRaffle() {
    * Manejar cambio de archivo de imagen
    * Nuevo: No lo teníamos en otras páginas
    */
-  const handleImageChange = (e) => {
+  const handleImageChange = e => {
     const file = e.target.files[0];
     if (file) {
       // Validar tipo de archivo
@@ -142,7 +143,7 @@ function CreateRaffle() {
       }
       setFormData(prev => ({
         ...prev,
-        raffle_image: file
+        raffle_image: file,
       }));
     }
   };
@@ -154,23 +155,33 @@ function CreateRaffle() {
    * Esta es la función más importante
    * Similar a handleRegister en Auth.jsx o handlePurchase en BuyNumbers.jsx
    */
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault(); // Prevenir recarga de página
-    
+
     // ========== VALIDACIONES FRONTEND ==========
     // Validar campos obligatorios
-    if (!formData.raffle_name || !formData.raffle_description || 
-        !formData.raffle_prize_amount || !formData.raffle_number_price ||
-        !formData.raffle_number_amount || !formData.raffle_minimum_numbers_sold ||
-        !formData.raffle_draw_date || !formData.raffle_prize_type ||
-        !formData.raffle_creator_payment_method) {
+    if (
+      !formData.raffle_name ||
+      !formData.raffle_description ||
+      !formData.raffle_prize_amount ||
+      !formData.raffle_number_price ||
+      !formData.raffle_number_amount ||
+      !formData.raffle_minimum_numbers_sold ||
+      !formData.raffle_draw_date ||
+      !formData.raffle_prize_type ||
+      !formData.raffle_creator_payment_method
+    ) {
       showMessage('Completa todos los campos obligatorios 📝', 'error');
       return;
     }
 
     // Validar que los números sean positivos
-    if (formData.raffle_prize_amount <= 0 || formData.raffle_number_price <= 0 ||
-        formData.raffle_number_amount <= 0 || formData.raffle_minimum_numbers_sold <= 0) {
+    if (
+      formData.raffle_prize_amount <= 0 ||
+      formData.raffle_number_price <= 0 ||
+      formData.raffle_number_amount <= 0 ||
+      formData.raffle_minimum_numbers_sold <= 0
+    ) {
       showMessage('Los montos y cantidades deben ser mayores a cero 💰', 'error');
       return;
     }
@@ -210,7 +221,7 @@ function CreateRaffle() {
       requestData.append('raffle_draw_date', formData.raffle_draw_date);
       requestData.append('raffle_prize_type', formData.raffle_prize_type);
       requestData.append('raffle_creator_payment_method', formData.raffle_creator_payment_method);
-      
+
       // Solo agregar imagen si existe
       if (formData.raffle_image) {
         requestData.append('raffle_image', formData.raffle_image);
@@ -221,17 +232,17 @@ function CreateRaffle() {
       // Para FormData, dejar que axios configure el Content-Type automáticamente
       const response = await apiClient.post('/raffle/create/', requestData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       // ========== ÉXITO ==========
       showMessage('¡Rifa creada con éxito! 🎉 Redirigiendo...', 'success');
-      
+
       // Extraer el ID de la rifa creada
       // El backend devuelve { raffle_id, raffle_name, raffle_state, message }
       const raffleId = response.data.raffle_id || response.data.id;
-      
+
       // Limpiar formulario
       setFormData({
         raffle_name: '',
@@ -243,7 +254,7 @@ function CreateRaffle() {
         raffle_draw_date: '',
         raffle_prize_type: '',
         raffle_creator_payment_method: '',
-        raffle_image: null
+        raffle_image: null,
       });
 
       // Redirigir a la página de detalle de la rifa creada
@@ -256,17 +267,17 @@ function CreateRaffle() {
           navigate('/');
         }
       }, 1500);
-
     } catch (error) {
       // ========== MANEJO DE ERRORES ==========
       console.error('Error creando rifa:', error);
-      
+
       // Extraer mensaje de error del backend
-      const errorMessage = error.response?.data?.detail || 
-                          error.response?.data?.message ||
-                          error.response?.data?.error ||
-                          'Error al crear la rifa. Intenta de nuevo.';
-      
+      const errorMessage =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Error al crear la rifa. Intenta de nuevo.';
+
       showMessage(errorMessage, 'error');
     } finally {
       setLoading(false);
@@ -277,12 +288,12 @@ function CreateRaffle() {
   // 7. RENDERIZADO CONDICIONAL
   // ============================================
   // Mismo patrón que BuyNumbers.jsx
-  
+
   // Mostrar loading mientras se verifica autenticación
   if (authLoading) {
     return (
       <div className="module-container active">
-        <div style={{textAlign: 'center', color: 'white', fontSize: '1.2rem', marginTop: '3rem'}}>
+        <div style={{ textAlign: 'center', color: 'white', fontSize: '1.2rem', marginTop: '3rem' }}>
           Verificando acceso... 🔐
         </div>
       </div>
@@ -298,7 +309,7 @@ function CreateRaffle() {
   if (loadingData) {
     return (
       <div className="module-container active">
-        <div style={{textAlign: 'center', color: 'white', fontSize: '1.2rem', marginTop: '3rem'}}>
+        <div style={{ textAlign: 'center', color: 'white', fontSize: '1.2rem', marginTop: '3rem' }}>
           Cargando formulario... 📋
         </div>
       </div>
@@ -313,34 +324,29 @@ function CreateRaffle() {
       {/* ===== BREADCRUMBS ===== */}
       {/* Mismo patrón que todas tus páginas */}
       <div className="breadcrumbs">
-        <div className="breadcrumb-item" onClick={() => navigate('/')}>Inicio</div>
+        <div className="breadcrumb-item" onClick={() => navigate('/')}>
+          Inicio
+        </div>
         <div className="breadcrumb-separator">&gt;</div>
         <div className="breadcrumb-item">Lanzar rifa</div>
       </div>
 
       {/* ===== FORMULARIO ===== */}
-      <div className="form-container" style={{maxWidth: '700px'}}>
-        <h2 style={{textAlign: 'center', marginBottom: '2rem'}}>
-          ¡Lanza tu propia rifa! 🚀
-        </h2>
-        
+      <div className="form-container" style={{ maxWidth: '700px' }}>
+        <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>¡Lanza tu propia rifa! 🚀</h2>
+
         {/* Texto de orientación - Como en Auth.jsx */}
         <div className="guidance-text">
-          Completa la información de tu rifa para que otros usuarios puedan participar. 
-          ¡Es fácil y divertido! Todos los campos marcados con * son obligatorios.
+          Completa la información de tu rifa para que otros usuarios puedan participar. ¡Es fácil y
+          divertido! Todos los campos marcados con * son obligatorios.
         </div>
 
         {/* ===== MENSAJE DE FEEDBACK ===== */}
         {/* Mismo patrón que Auth.jsx */}
-        {message.show && (
-          <div className={`message ${message.type} show`}>
-            {message.text}
-          </div>
-        )}
+        {message.show && <div className={`message ${message.type} show`}>{message.text}</div>}
 
         {/* ===== FORMULARIO ===== */}
         <form onSubmit={handleSubmit}>
-          
           {/* Campo: Nombre de la rifa */}
           <div className="form-group">
             <label className="form-label">¿Qué rifa vas a lanzar? *</label>
@@ -372,8 +378,7 @@ function CreateRaffle() {
           </div>
 
           {/* Campos en grid - dos columnas */}
-          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem'}}>
-            
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             {/* Campo: Tipo de premio */}
             <div className="form-group">
               <label className="form-label">Tipo de premio *</label>
@@ -411,8 +416,7 @@ function CreateRaffle() {
             </div>
           </div>
 
-          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem'}}>
-            
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             {/* Campo: Precio por número */}
             <div className="form-group">
               <label className="form-label">Precio por número ($) *</label>
@@ -444,9 +448,7 @@ function CreateRaffle() {
                 disabled={loading}
                 required
               />
-              <small style={{color: '#666', fontSize: '0.85rem'}}>
-                Entre 10 y 1000 números
-              </small>
+              <small style={{ color: '#666', fontSize: '0.85rem' }}>Entre 10 y 1000 números</small>
             </div>
           </div>
 
@@ -464,9 +466,9 @@ function CreateRaffle() {
               disabled={loading}
               required
             />
-            <small style={{color: '#666', fontSize: '0.85rem'}}>
-              Cantidad mínima de números que deben venderse para activar el sorteo. 
-              No puede ser mayor a la cantidad total de números.
+            <small style={{ color: '#666', fontSize: '0.85rem' }}>
+              Cantidad mínima de números que deben venderse para activar el sorteo. No puede ser
+              mayor a la cantidad total de números.
             </small>
           </div>
 
@@ -482,7 +484,7 @@ function CreateRaffle() {
               disabled={loading}
               required
             />
-            <small style={{color: '#666', fontSize: '0.85rem'}}>
+            <small style={{ color: '#666', fontSize: '0.85rem' }}>
               El sorteo debe ser en una fecha futura. Las ventas se cerrarán en esta fecha.
             </small>
           </div>
@@ -501,19 +503,20 @@ function CreateRaffle() {
               <option value="">Selecciona un método de pago...</option>
               {paymentMethods.map(method => (
                 <option key={method.id} value={method.id}>
-                  {method.payment_method_type_name || method.payment_method_type?.payment_method_type_name}
+                  {method.payment_method_type_name ||
+                    method.payment_method_type?.payment_method_type_name}
                   {method.last_digits ? ` (${method.last_digits})` : ''}
                   {method.masked_card_number ? ` (${method.masked_card_number})` : ''}
-                  {method.payment_method_balance !== undefined ? 
-                    ` - Saldo: $${parseFloat(method.payment_method_balance).toLocaleString()}` : ''}
+                  {method.payment_method_balance !== undefined
+                    ? ` - Saldo: $${parseFloat(method.payment_method_balance).toLocaleString()}`
+                    : ''}
                 </option>
               ))}
             </select>
-            <small style={{color: '#666', fontSize: '0.85rem'}}>
-              {paymentMethods.length === 0 ? 
-                '⚠️ No tienes métodos de pago registrados. Debes crear uno primero.' :
-                'Aquí recibirás el dinero recaudado después del sorteo (descontando el premio).'
-              }
+            <small style={{ color: '#666', fontSize: '0.85rem' }}>
+              {paymentMethods.length === 0
+                ? '⚠️ No tienes métodos de pago registrados. Debes crear uno primero.'
+                : 'Aquí recibirás el dinero recaudado después del sorteo (descontando el premio).'}
             </small>
           </div>
 
@@ -528,20 +531,22 @@ function CreateRaffle() {
               className="form-input"
             />
             {formData.raffle_image && (
-              <small style={{color: '#2ECC71', fontSize: '0.85rem'}}>
+              <small style={{ color: '#2ECC71', fontSize: '0.85rem' }}>
                 ✓ Imagen seleccionada: {formData.raffle_image.name}
               </small>
             )}
-            <small style={{color: '#666', fontSize: '0.85rem', display: 'block', marginTop: '0.5rem'}}>
+            <small
+              style={{ color: '#666', fontSize: '0.85rem', display: 'block', marginTop: '0.5rem' }}
+            >
               Formatos: JPG, PNG, GIF. Tamaño máximo: 5MB
             </small>
           </div>
 
           {/* Botón de envío */}
-          <button 
-            type="submit" 
-            className="btn-primary" 
-            style={{width: '100%'}}
+          <button
+            type="submit"
+            className="btn-primary"
+            style={{ width: '100%' }}
             disabled={loading}
           >
             {loading ? 'Creando rifa...' : '¡Lanzar mi rifa!'}

@@ -1,0 +1,33 @@
+[MASTER]
+# Extensiones de pylint para Django
+load-plugins=pylint_django
+
+[MESSAGES CONTROL]
+# Deshabilitar advertencias específicas
+disable=
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    too-few-public-methods,
+    too-many-public-methods,
+    too-many-instance-attributes,
+    import-outside-toplevel,
+    duplicate-code,
+    no-member,
+    line-too-long
+
+[DESIGN]
+# Límites más flexibles
+max-line-length=120
+max-args=10
+max-locals=20
+max-attributes=15
+max-public-methods=30
+
+[BASIC]
+# Permitir nombres cortos comunes
+good-names=i,j,k,id,pk,_,e,f
+
+[DJANGO]
+# Configuración específica de Django
+django-settings-module=core.settings

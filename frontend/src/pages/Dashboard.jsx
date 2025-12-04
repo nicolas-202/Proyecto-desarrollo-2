@@ -28,7 +28,7 @@ const Dashboard = () => {
             Estás en tu panel de control. Desde aquí puedes gestionar tus rifas y participaciones.
           </p>
         </div>
-        
+
         {isAdmin() && (
           <div className="admin-badge">
             <span className="badge badge-admin">👑 Administrador</span>
@@ -81,7 +81,9 @@ const Dashboard = () => {
           <div className="section">
             <div className="section-header">
               <h2>Rifas Populares</h2>
-              <a href="/rifas" className="section-link">Ver todas</a>
+              <a href="/rifas" className="section-link">
+                Ver todas
+              </a>
             </div>
             <div className="section-content">
               <div className="empty-state">
@@ -95,16 +97,16 @@ const Dashboard = () => {
           <div className="section">
             <div className="section-header">
               <h2>Mis Últimas Participaciones</h2>
-              <a href="/mis-participaciones" className="section-link">Ver historial</a>
+              <a href="/mis-participaciones" className="section-link">
+                Ver historial
+              </a>
             </div>
             <div className="section-content">
               <div className="empty-state">
                 <div className="empty-icon">🎲</div>
                 <h3>No has participado en rifas</h3>
                 <p>¡Empieza a participar y ten la oportunidad de ganar!</p>
-                <button className="btn btn-primary">
-                  Ver Rifas Disponibles
-                </button>
+                <button className="btn btn-primary">Ver Rifas Disponibles</button>
               </div>
             </div>
           </div>
@@ -135,7 +137,9 @@ const Dashboard = () => {
         <div className="user-profile-section">
           <div className="section-header">
             <h2>Mi Perfil</h2>
-            <a href="/perfil" className="section-link">Editar perfil</a>
+            <a href="/perfil" className="section-link">
+              Editar perfil
+            </a>
           </div>
           <div className="profile-info">
             <div className="profile-item">

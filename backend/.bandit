@@ -1,0 +1,15 @@
+[bandit]
+# Excluir archivos de tests y migraciones
+exclude_dirs = ['/tests', '/migrations', '__pycache__']
+
+# Tests a ejecutar (todos por defecto)
+# tests = []
+
+# Tests a omitir (si algunos son falsos positivos)
+# skips = ['B110']
+
+# Nivel de severidad mínimo para reportar (LOW, MEDIUM, HIGH)
+# level = LOW
+
+# Nivel de confianza mínimo (LOW, MEDIUM, HIGH)
+# confidence = LOW

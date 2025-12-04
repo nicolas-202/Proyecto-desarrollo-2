@@ -10,7 +10,7 @@ rifas_versionmejorada.html
 # Django
 db.sqlite3
 *.log
-
+bandit-report.json
 # Media files (uploaded content) - exclude user uploads but keep defaults
 backend/media/raffles/[0-9]*/
 backend/media/raffles/20*/

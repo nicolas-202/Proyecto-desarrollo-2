@@ -1,18 +1,23 @@
 from django.shortcuts import render
 from rest_framework import viewsets
-from .serializer import CountrySerializer, StateSerializer, CitySerializer
-from .models import Country, State, City
 from rest_framework.exceptions import ValidationError
+
 from permissions.permissions import IsAdminOrReadOnly
+
+from .models import City, Country, State
+from .serializer import CitySerializer, CountrySerializer, StateSerializer
+
 
 class BaseUserInfoViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         # Aplicar IsAdminOrReadOnly para todas las acciones
         return [IsAdminOrReadOnly()]
 
+
 class CountryViewSet(BaseUserInfoViewSet):
     serializer_class = CountrySerializer
     queryset = Country.objects.all()
+
 
 class StateViewSet(BaseUserInfoViewSet):
     serializer_class = StateSerializer
@@ -20,7 +25,7 @@ class StateViewSet(BaseUserInfoViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        country_id = self.request.query_params.get('country')
+        country_id = self.request.query_params.get("country")
         if country_id:
             try:
                 # Intentar convertir a entero
@@ -35,13 +40,14 @@ class StateViewSet(BaseUserInfoViewSet):
                 raise ValidationError({"country": "Country not found"})
         return queryset
 
+
 class CityViewSet(BaseUserInfoViewSet):
     serializer_class = CitySerializer
     queryset = City.objects.all()
-    
+
     def get_queryset(self):
         queryset = super().get_queryset()
-        state_id = self.request.query_params.get('state')
+        state_id = self.request.query_params.get("state")
         if state_id:
             try:
                 # Intentar convertir a entero

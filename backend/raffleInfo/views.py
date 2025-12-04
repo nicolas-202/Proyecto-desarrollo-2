@@ -1,11 +1,12 @@
-from django.shortcuts import render
-
 # Create your views here.
 from django.shortcuts import render
 from rest_framework import viewsets
-from .serializer import  PrizeTypeSerializer, StateRaffleSerializer
-from .models import PrizeType, StateRaffle
+
 from permissions.permissions import IsAdminOrReadOnly
+
+from .models import PrizeType, StateRaffle
+from .serializer import PrizeTypeSerializer, StateRaffleSerializer
+
 
 class BaseraflleinfoViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
@@ -21,7 +22,3 @@ class PrizeTypeViewSet(BaseraflleinfoViewSet):
 class StateRaffleViewSet(BaseraflleinfoViewSet):
     serializer_class = StateRaffleSerializer
     queryset = StateRaffle.objects.all()
-
-
-
-

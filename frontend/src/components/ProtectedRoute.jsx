@@ -19,9 +19,9 @@ const ProtectedRoute = ({ children, adminOnly = false, redirectTo = '/auth' }) =
   // Si no está autenticado, redirigir al login con la ruta actual
   if (!isAuthenticated) {
     return (
-      <Navigate 
+      <Navigate
         to={`${redirectTo}?redirect=${encodeURIComponent(location.pathname + location.search)}`}
-        replace 
+        replace
       />
     );
   }
@@ -34,10 +34,7 @@ const ProtectedRoute = ({ children, adminOnly = false, redirectTo = '/auth' }) =
           <div className="access-denied-icon">🚫</div>
           <h2>Acceso Denegado</h2>
           <p>No tienes permisos suficientes para acceder a esta página.</p>
-          <button 
-            className="btn btn-primary"
-            onClick={() => window.history.back()}
-          >
+          <button className="btn btn-primary" onClick={() => window.history.back()}>
             Volver Atrás
           </button>
         </div>

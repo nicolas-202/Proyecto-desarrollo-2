@@ -4,9 +4,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/authService';
 
 function ConfigCategory() {
-    const { categoryId } = useParams();
+  const { categoryId } = useParams();
 
-  <p>Aqui encontraras la pagina configCategory</p>
+  <p>Aqui encontraras la pagina configCategory</p>;
 }
 
 export default ConfigCategory;

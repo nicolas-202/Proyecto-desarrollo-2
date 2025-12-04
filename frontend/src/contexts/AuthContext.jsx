@@ -3,18 +3,18 @@ import { authService } from '../services/authService';
 
 // Estado inicial - como empieza la aplicación
 const initialState = {
-  user: null,          // Información del usuario (nombre, email, etc.)
-  token: null,         // Token JWT para hacer peticiones autenticadas
-  refreshToken: null,  // Token para renovar el acceso cuando expire
+  user: null, // Información del usuario (nombre, email, etc.)
+  token: null, // Token JWT para hacer peticiones autenticadas
+  refreshToken: null, // Token para renovar el acceso cuando expire
   isAuthenticated: false, // ¿Está logueado?
-  isLoading: true,     // ¿Estamos cargando?
-  error: null          // ¿Hay algún error?
+  isLoading: true, // ¿Estamos cargando?
+  error: null, // ¿Hay algún error?
 };
 
 // Tipos de acciones que pueden pasar
 const AUTH_ACTIONS = {
   LOGIN_START: 'LOGIN_START',
-  LOGIN_SUCCESS: 'LOGIN_SUCCESS', 
+  LOGIN_SUCCESS: 'LOGIN_SUCCESS',
   LOGIN_ERROR: 'LOGIN_ERROR',
   LOGOUT: 'LOGOUT',
   REGISTER_START: 'REGISTER_START',
@@ -22,7 +22,7 @@ const AUTH_ACTIONS = {
   REGISTER_ERROR: 'REGISTER_ERROR',
   CLEAR_ERROR: 'CLEAR_ERROR',
   SET_LOADING: 'SET_LOADING',
-  RESTORE_SESSION: 'RESTORE_SESSION'
+  RESTORE_SESSION: 'RESTORE_SESSION',
 };
 
 // Reducer - decide qué hacer cuando pasa cada acción
@@ -33,7 +33,7 @@ const authReducer = (state, action) => {
       return {
         ...state,
         isLoading: true,
-        error: null
+        error: null,
       };
 
     case AUTH_ACTIONS.LOGIN_SUCCESS:
@@ -44,14 +44,14 @@ const authReducer = (state, action) => {
         refreshToken: action.payload.refresh,
         isAuthenticated: true,
         isLoading: false,
-        error: null
+        error: null,
       };
 
     case AUTH_ACTIONS.REGISTER_SUCCESS:
       return {
         ...state,
         isLoading: false,
-        error: null
+        error: null,
         // No guardamos usuario hasta que haga login
       };
 
@@ -64,25 +64,25 @@ const authReducer = (state, action) => {
         refreshToken: null,
         isAuthenticated: false,
         isLoading: false,
-        error: action.payload
+        error: action.payload,
       };
 
     case AUTH_ACTIONS.LOGOUT:
       return {
         ...initialState,
-        isLoading: false
+        isLoading: false,
       };
 
     case AUTH_ACTIONS.CLEAR_ERROR:
       return {
         ...state,
-        error: null
+        error: null,
       };
 
     case AUTH_ACTIONS.SET_LOADING:
       return {
         ...state,
-        isLoading: action.payload
+        isLoading: action.payload,
       };
 
     case AUTH_ACTIONS.RESTORE_SESSION:
@@ -92,7 +92,7 @@ const authReducer = (state, action) => {
         token: action.payload.token,
         refreshToken: action.payload.refreshToken,
         isAuthenticated: true,
-        isLoading: false
+        isLoading: false,
       };
 
     default:
@@ -135,8 +135,8 @@ export const AuthProvider = ({ children }) => {
               payload: {
                 token: storedToken,
                 refreshToken: storedRefreshToken,
-                user: JSON.parse(storedUser)
-              }
+                user: JSON.parse(storedUser),
+              },
             });
           } else {
             // Token expirado, limpiar todo
@@ -170,7 +170,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Función de login - conectada al backend real
-  const login = async (credentials) => {
+  const login = async credentials => {
     try {
       dispatch({ type: AUTH_ACTIONS.LOGIN_START });
 
@@ -182,18 +182,17 @@ export const AuthProvider = ({ children }) => {
 
       dispatch({
         type: AUTH_ACTIONS.LOGIN_SUCCESS,
-        payload: { access, refresh, user }
+        payload: { access, refresh, user },
       });
 
       return { success: true };
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || 
-                          error.response?.data?.message || 
-                          'Error al iniciar sesión';
-      
+      const errorMessage =
+        error.response?.data?.detail || error.response?.data?.message || 'Error al iniciar sesión';
+
       dispatch({
         type: AUTH_ACTIONS.LOGIN_ERROR,
-        payload: errorMessage
+        payload: errorMessage,
       });
 
       return { success: false, error: errorMessage };
@@ -201,7 +200,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Función de registro - conectada al backend real
-  const register = async (userData) => {
+  const register = async userData => {
     try {
       dispatch({ type: AUTH_ACTIONS.REGISTER_START });
 
@@ -211,13 +210,14 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, message: 'Usuario registrado exitosamente' };
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.detail ||
-                          'Error al registrar usuario';
-      
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.detail ||
+        'Error al registrar usuario';
+
       dispatch({
         type: AUTH_ACTIONS.REGISTER_ERROR,
-        payload: errorMessage
+        payload: errorMessage,
       });
 
       return { success: false, error: errorMessage };
@@ -242,22 +242,18 @@ export const AuthProvider = ({ children }) => {
   const contextValue = {
     // Estado actual
     ...state,
-    
+
     // Funciones
     login,
     register,
     logout,
     clearError,
-    
+
     // Computed values
-    isAdmin
+    isAdmin,
   };
 
-  return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
 
 export default AuthContext;

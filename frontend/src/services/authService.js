@@ -11,14 +11,14 @@ const apiClient = axios.create({
 
 // Interceptor: automáticamente agrega el token a todas las peticiones
 apiClient.interceptors.request.use(
-  (config) => {
+  config => {
     const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
+  error => {
     return Promise.reject(error);
   }
 );
@@ -62,7 +62,7 @@ export const authService = {
   async refreshToken(refreshToken) {
     try {
       const response = await apiClient.post('/auth/refresh/', {
-        refresh: refreshToken
+        refresh: refreshToken,
       });
       return response.data;
     } catch (error) {
@@ -167,7 +167,7 @@ export const authService = {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
-  }
+  },
 };
 
 // Exportar también el cliente HTTP configurado por si lo necesitas en otros lugares

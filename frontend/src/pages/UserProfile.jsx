@@ -7,7 +7,7 @@ const UserProfile = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
-  
+
   const [user, setUser] = useState(null);
   const [interactions, setInteractions] = useState([]);
   const [raffles, setRaffles] = useState([]);
@@ -23,7 +23,7 @@ const UserProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [hasRated, setHasRated] = useState(false);
   const [existingRatingId, setExistingRatingId] = useState(null);
-  
+
   // Estados para edición de perfil
   const [editForm, setEditForm] = useState({
     first_name: '',
@@ -31,15 +31,15 @@ const UserProfile = () => {
     phone_number: '',
     address: '',
     city: '',
-    gender: ''
+    gender: '',
   });
-  
+
   // Estados para nueva calificación
   const [ratingForm, setRatingForm] = useState({
     rating: 5,
-    comment: ''
+    comment: '',
   });
-  
+
   // Estados para métodos de pago
   const [paymentForm, setPaymentForm] = useState({
     payment_method_type: '',
@@ -47,7 +47,7 @@ const UserProfile = () => {
     card_number: '',
     paymenth_method_expiration_date: '',
   });
-  
+
   // Estados para ubicación
   const [countries, setCountries] = useState([]);
   const [states, setStates] = useState([]);
@@ -55,7 +55,7 @@ const UserProfile = () => {
   const [genders, setGenders] = useState([]);
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedState, setSelectedState] = useState('');
-  
+
   const isOwnProfile = currentUser && currentUser.id === parseInt(userId);
 
   useEffect(() => {
@@ -80,9 +80,9 @@ const UserProfile = () => {
         if (!userData) throw new Error('Usuario no encontrado');
         response = { data: userData };
       }
-      
+
       setUser(response.data);
-      
+
       if (isOwnProfile) {
         setEditForm({
           first_name: response.data.first_name || '',
@@ -90,9 +90,9 @@ const UserProfile = () => {
           phone_number: response.data.phone_number || '',
           address: response.data.address || '',
           city: response.data.city?.id || '',
-          gender: response.data.gender?.id || ''
+          gender: response.data.gender?.id || '',
         });
-        
+
         if (response.data.city?.state?.id) {
           setSelectedState(response.data.city.state.id);
           fetchCities(response.data.city.state.id);
@@ -114,24 +114,25 @@ const UserProfile = () => {
     try {
       const response = await apiClient.get(`/interactions/?target_user=${userId}`);
       setInteractions(response.data);
-      
+
       // Verificar si el usuario actual ya ha calificado a este usuario
       if (currentUser && !isOwnProfile) {
         // El backend puede devolver el source_user como ID (número) o como objeto
         const userRating = response.data.find(int => {
-          const sourceUserId = typeof int.interaction_source_user === 'object' 
-            ? int.interaction_source_user?.id 
-            : int.interaction_source_user;
+          const sourceUserId =
+            typeof int.interaction_source_user === 'object'
+              ? int.interaction_source_user?.id
+              : int.interaction_source_user;
           return sourceUserId === currentUser.id;
         });
-        
+
         if (userRating) {
           setHasRated(true);
           setExistingRatingId(userRating.id);
           // Cargar la calificación existente en el formulario
           setRatingForm({
             rating: userRating.interaction_rating,
-            comment: userRating.interaction_comment || ''
+            comment: userRating.interaction_comment || '',
           });
         } else {
           setHasRated(false);
@@ -139,7 +140,7 @@ const UserProfile = () => {
           // Resetear formulario a valores por defecto
           setRatingForm({
             rating: 5,
-            comment: ''
+            comment: '',
           });
         }
       }
@@ -164,7 +165,7 @@ const UserProfile = () => {
     try {
       const [countriesRes, gendersRes] = await Promise.all([
         apiClient.get('/location/countries/'),
-        apiClient.get('/user-info/genders/')
+        apiClient.get('/user-info/genders/'),
       ]);
       setCountries(countriesRes.data);
       setGenders(gendersRes.data);
@@ -173,7 +174,7 @@ const UserProfile = () => {
     }
   };
 
-  const fetchStates = async (countryId) => {
+  const fetchStates = async countryId => {
     try {
       const response = await apiClient.get(`/location/states/?country=${countryId}`);
       setStates(response.data);
@@ -182,7 +183,7 @@ const UserProfile = () => {
     }
   };
 
-  const fetchCities = async (stateId) => {
+  const fetchCities = async stateId => {
     try {
       const response = await apiClient.get(`/location/cities/?state=${stateId}`);
       setCities(response.data);
@@ -191,7 +192,7 @@ const UserProfile = () => {
     }
   };
 
-  const handleCountryChange = (e) => {
+  const handleCountryChange = e => {
     const countryId = e.target.value;
     setSelectedCountry(countryId);
     setSelectedState('');
@@ -203,7 +204,7 @@ const UserProfile = () => {
     }
   };
 
-  const handleStateChange = (e) => {
+  const handleStateChange = e => {
     const stateId = e.target.value;
     setSelectedState(stateId);
     setEditForm({ ...editForm, city: '' });
@@ -213,7 +214,7 @@ const UserProfile = () => {
     }
   };
 
-  const handleEditSubmit = async (e) => {
+  const handleEditSubmit = async e => {
     e.preventDefault();
     try {
       const response = await apiClient.put('/auth/update_me/', editForm);
@@ -226,15 +227,15 @@ const UserProfile = () => {
     }
   };
 
-  const handleRatingSubmit = async (e) => {
+  const handleRatingSubmit = async e => {
     e.preventDefault();
-    
+
     try {
       if (existingRatingId) {
         // Actualizar calificación existente usando PATCH
         await apiClient.patch(`/interactions/${existingRatingId}/`, {
           interaction_rating: ratingForm.rating,
-          interaction_comment: ratingForm.comment || ''
+          interaction_comment: ratingForm.comment || '',
         });
         alert('Calificación actualizada correctamente');
       } else {
@@ -242,21 +243,21 @@ const UserProfile = () => {
         await apiClient.post('/interactions/', {
           interaction_target_user: parseInt(userId),
           interaction_rating: ratingForm.rating,
-          interaction_comment: ratingForm.comment || ''
+          interaction_comment: ratingForm.comment || '',
         });
         alert('Calificación enviada correctamente');
       }
-      
+
       setShowRatingModal(false);
       setHasRated(true);
       await fetchInteractions();
       await fetchUserData();
     } catch (err) {
       console.error('Error al crear/actualizar calificación:', err);
-      
+
       // Manejar diferentes tipos de errores
       let errorMessage = 'Error al enviar la calificación';
-      
+
       if (err.response?.data) {
         if (typeof err.response.data === 'string') {
           errorMessage = err.response.data;
@@ -270,26 +271,28 @@ const UserProfile = () => {
           errorMessage = JSON.stringify(err.response.data);
         }
       }
-      
+
       alert(errorMessage);
     }
   };
 
   const handleDeleteRating = async () => {
     if (!existingRatingId) return;
-    
-    const confirmDelete = window.confirm('¿Estás seguro de que deseas eliminar tu calificación? Esta acción no se puede deshacer.');
+
+    const confirmDelete = window.confirm(
+      '¿Estás seguro de que deseas eliminar tu calificación? Esta acción no se puede deshacer.'
+    );
     if (!confirmDelete) return;
-    
+
     try {
       await apiClient.delete(`/interactions/${existingRatingId}/`);
       alert('Calificación eliminada correctamente');
-      
+
       setShowRatingModal(false);
       setHasRated(false);
       setExistingRatingId(null);
       setRatingForm({ rating: 5, comment: '' });
-      
+
       await fetchInteractions();
       await fetchUserData();
     } catch (err) {
@@ -303,7 +306,7 @@ const UserProfile = () => {
     try {
       const [methodsRes, typesRes] = await Promise.all([
         apiClient.get('/user-info/payment-methods/'),
-        apiClient.get('/user-info/payment-method-types/')
+        apiClient.get('/user-info/payment-method-types/'),
       ]);
       setPaymentMethods(methodsRes.data);
       setPaymentMethodTypes(typesRes.data);
@@ -324,7 +327,7 @@ const UserProfile = () => {
     setShowPaymentModal(true);
   };
 
-  const handleEditPayment = (method) => {
+  const handleEditPayment = method => {
     setPaymentModalMode('edit');
     setCurrentPaymentMethod(method);
     setPaymentForm({
@@ -336,8 +339,12 @@ const UserProfile = () => {
     setShowPaymentModal(true);
   };
 
-  const handleDeletePayment = async (method) => {
-    if (!window.confirm(`¿Estás seguro de eliminar el método de pago terminado en ${method.last_digits}?`)) {
+  const handleDeletePayment = async method => {
+    if (
+      !window.confirm(
+        `¿Estás seguro de eliminar el método de pago terminado en ${method.last_digits}?`
+      )
+    ) {
       return;
     }
 
@@ -351,9 +358,9 @@ const UserProfile = () => {
     }
   };
 
-  const handlePaymentSubmit = async (e) => {
+  const handlePaymentSubmit = async e => {
     e.preventDefault();
-    
+
     try {
       if (paymentModalMode === 'create') {
         await apiClient.post('/user-info/payment-methods/', paymentForm);
@@ -364,26 +371,28 @@ const UserProfile = () => {
           paymenth_method_holder_name: paymentForm.paymenth_method_holder_name,
           paymenth_method_expiration_date: paymentForm.paymenth_method_expiration_date,
         };
-        
+
         if (paymentForm.card_number) {
           updateData.card_number = paymentForm.card_number;
         }
-        
+
         await apiClient.patch(`/user-info/payment-methods/${currentPaymentMethod.id}/`, updateData);
         alert('✅ Método de pago actualizado');
       }
-      
+
       setShowPaymentModal(false);
       await fetchPaymentMethods();
     } catch (error) {
       console.error('Error al guardar:', error);
-      
+
       let errorMsg = 'Error al guardar';
       if (error.response?.data) {
         const errorData = error.response.data;
         if (typeof errorData === 'object') {
           errorMsg = Object.entries(errorData)
-            .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+            .map(
+              ([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`
+            )
             .join('\n');
         } else {
           errorMsg = errorData.detail || errorData.message || String(errorData);
@@ -393,10 +402,10 @@ const UserProfile = () => {
     }
   };
 
-  const getCardIcon = (typeId) => {
+  const getCardIcon = typeId => {
     const type = paymentMethodTypes.find(t => t.id === typeId);
     const code = type?.payment_method_type_code?.toLowerCase() || '';
-    
+
     if (code.includes('vis')) return '💳';
     if (code.includes('mas')) return '💳';
     if (code.includes('ame')) return '💳';
@@ -426,7 +435,11 @@ const UserProfile = () => {
       <div className="module-container active">
         <div className="form-container">
           <h2 style={{ textAlign: 'center', color: '#e74c3c' }}>⚠️ {error}</h2>
-          <button onClick={() => navigate(-1)} className="btn-secondary" style={{ width: '100%', marginTop: '1rem' }}>
+          <button
+            onClick={() => navigate(-1)}
+            className="btn-secondary"
+            style={{ width: '100%', marginTop: '1rem' }}
+          >
             Volver
           </button>
         </div>
@@ -438,7 +451,9 @@ const UserProfile = () => {
     <div className="module-container active">
       {/* Breadcrumb */}
       <div className="breadcrumbs">
-        <div className="breadcrumb-item" onClick={() => navigate('/')}>Inicio</div>
+        <div className="breadcrumb-item" onClick={() => navigate('/')}>
+          Inicio
+        </div>
         <div className="breadcrumb-separator">&gt;</div>
         <div className="breadcrumb-item">Perfil</div>
       </div>
@@ -446,36 +461,36 @@ const UserProfile = () => {
       {/* Cabecera de perfil */}
       <div className="profile-header">
         <div className="profile-avatar">
-          {user?.first_name?.[0]}{user?.last_name?.[0]}
+          {user?.first_name?.[0]}
+          {user?.last_name?.[0]}
         </div>
         <div className="profile-info">
           <h2>{user?.full_name || `${user?.first_name} ${user?.last_name}`}</h2>
           <p style={{ color: '#666', marginBottom: '0.5rem' }}>{user?.email}</p>
           <div className="rating">
-            {'⭐'.repeat(Math.round(calculateAverageRating()))}
-            {' '}
+            {'⭐'.repeat(Math.round(calculateAverageRating()))}{' '}
             <span style={{ color: '#666' }}>
-              {calculateAverageRating()} ({interactions.length} {interactions.length === 1 ? 'calificación' : 'calificaciones'})
+              {calculateAverageRating()} ({interactions.length}{' '}
+              {interactions.length === 1 ? 'calificación' : 'calificaciones'})
             </span>
           </div>
           {user?.phone_number && (
             <p style={{ color: '#666', marginTop: '0.5rem' }}>📱 {user.phone_number}</p>
           )}
           {user?.city && (
-            <p style={{ color: '#666' }}>📍 {user.city.city_name}, {user.city.state?.state_name}</p>
+            <p style={{ color: '#666' }}>
+              📍 {user.city.city_name}, {user.city.state?.state_name}
+            </p>
           )}
         </div>
         <div style={{ marginLeft: 'auto' }}>
           {!isOwnProfile && currentUser && (
-            <button 
-              className="btn-primary"
-              onClick={() => setShowRatingModal(true)}
-            >
+            <button className="btn-primary" onClick={() => setShowRatingModal(true)}>
               {hasRated ? '✏️ Editar calificación' : '⭐ Calificar usuario'}
             </button>
           )}
           {isOwnProfile && !isEditing && (
-            <button 
+            <button
               className="btn-secondary"
               onClick={() => {
                 setIsEditing(true);
@@ -490,13 +505,13 @@ const UserProfile = () => {
 
       {/* Tabs */}
       <div className="tabs">
-        <div 
+        <div
           className={`tab ${activeTab === 'rifas' ? 'active' : ''}`}
           onClick={() => setActiveTab('rifas')}
         >
           Rifas
         </div>
-        <div 
+        <div
           className={`tab ${activeTab === 'comments' ? 'active' : ''}`}
           onClick={() => setActiveTab('comments')}
         >
@@ -504,7 +519,7 @@ const UserProfile = () => {
         </div>
         {isOwnProfile && (
           <>
-            <div 
+            <div
               className={`tab ${activeTab === 'edit' ? 'active' : ''}`}
               onClick={() => {
                 setActiveTab('edit');
@@ -513,7 +528,7 @@ const UserProfile = () => {
             >
               Editar perfil
             </div>
-            <div 
+            <div
               className={`tab ${activeTab === 'payments' ? 'active' : ''}`}
               onClick={() => setActiveTab('payments')}
             >
@@ -532,36 +547,37 @@ const UserProfile = () => {
           <div className="rifa-grid">
             {raffles.length === 0 ? (
               <div style={{ color: 'white', textAlign: 'center', gridColumn: '1 / -1' }}>
-                {isOwnProfile 
-                  ? 'Aún no has creado ninguna rifa' 
-                  : 'Este usuario aún no ha creado rifas'
-                }
+                {isOwnProfile
+                  ? 'Aún no has creado ninguna rifa'
+                  : 'Este usuario aún no ha creado rifas'}
               </div>
             ) : (
-              raffles.map((raffle) => (
-                <div 
-                  key={raffle.id} 
+              raffles.map(raffle => (
+                <div
+                  key={raffle.id}
                   className="rifa-card"
                   onClick={() => navigate(`/raffle/${raffle.id}`)}
                   style={{ cursor: 'pointer' }}
                 >
                   <div className="rifa-image">
                     {raffle.raffle_image ? (
-                      <img 
-                        src={raffle.raffle_image} 
+                      <img
+                        src={raffle.raffle_image}
                         alt={raffle.raffle_name}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                     ) : (
-                      <div style={{ 
-                        width: '100%', 
-                        height: '100%', 
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '3rem'
-                      }}>
+                      <div
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '3rem',
+                        }}
+                      >
                         🎟️
                       </div>
                     )}
@@ -569,15 +585,16 @@ const UserProfile = () => {
                   <div className="rifa-details">
                     <h3>{raffle.raffle_name}</h3>
                     <p className="rifa-description">
-                      {raffle.raffle_description?.length > 100 
-                        ? `${raffle.raffle_description.substring(0, 100)}...` 
-                        : raffle.raffle_description
-                      }
+                      {raffle.raffle_description?.length > 100
+                        ? `${raffle.raffle_description.substring(0, 100)}...`
+                        : raffle.raffle_description}
                     </p>
                     <div className="rifa-info">
                       <div className="info-item">
                         <span className="label">💰 Precio:</span>
-                        <span className="value">${parseFloat(raffle.raffle_number_price).toLocaleString()}</span>
+                        <span className="value">
+                          ${parseFloat(raffle.raffle_number_price).toLocaleString()}
+                        </span>
                       </div>
                       <div className="info-item">
                         <span className="label">🎫 Números:</span>
@@ -589,13 +606,15 @@ const UserProfile = () => {
                           {new Date(raffle.raffle_draw_date).toLocaleDateString('es-ES', {
                             day: '2-digit',
                             month: 'short',
-                            year: 'numeric'
+                            year: 'numeric',
                           })}
                         </span>
                       </div>
                       <div className="info-item">
                         <span className="label">🏆 Estado:</span>
-                        <span className={`status-badge status-${raffle.raffle_state?.state_raffle_name?.toLowerCase()}`}>
+                        <span
+                          className={`status-badge status-${raffle.raffle_state?.state_raffle_name?.toLowerCase()}`}
+                        >
                           {raffle.raffle_state?.state_raffle_name}
                         </span>
                       </div>
@@ -619,23 +638,25 @@ const UserProfile = () => {
               <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
                 <p>⭐ Sin calificaciones aún</p>
                 <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                  {isOwnProfile 
+                  {isOwnProfile
                     ? 'Aún no has recibido calificaciones de otros usuarios.'
-                    : 'Este usuario aún no ha recibido calificaciones.'
-                  }
+                    : 'Este usuario aún no ha recibido calificaciones.'}
                 </p>
               </div>
             ) : (
-              interactions.map((interaction) => (
+              interactions.map(interaction => (
                 <div key={interaction.id} className="comment-item">
                   <div className="comment-header">
                     <div>
-                      <strong>{interaction.interaction_source_user?.first_name} {interaction.interaction_source_user?.last_name}</strong>
+                      <strong>
+                        {interaction.interaction_source_user?.first_name}{' '}
+                        {interaction.interaction_source_user?.last_name}
+                      </strong>
                       <p style={{ color: '#666', fontSize: '0.9rem', marginTop: '0.25rem' }}>
                         {new Date(interaction.interaction_created_at).toLocaleDateString('es-ES', {
                           year: 'numeric',
                           month: 'long',
-                          day: 'numeric'
+                          day: 'numeric',
                         })}
                       </p>
                     </div>
@@ -660,18 +681,19 @@ const UserProfile = () => {
             <div className="form-container">
               <h3>{hasRated ? 'Edita tu calificación' : '¿Qué te pareció este usuario?'}</h3>
               <div className="guidance-text">
-                {hasRated 
+                {hasRated
                   ? 'Puedes modificar tu calificación y comentario en cualquier momento.'
-                  : 'Comparte tu experiencia para ayudar a otros usuarios.'
-                }
+                  : 'Comparte tu experiencia para ayudar a otros usuarios.'}
               </div>
               <form onSubmit={handleRatingSubmit}>
                 <div className="form-group">
                   <label className="form-label">¿Cómo calificarías a este usuario?</label>
-                  <select 
+                  <select
                     className="form-input"
                     value={ratingForm.rating}
-                    onChange={(e) => setRatingForm({...ratingForm, rating: parseInt(e.target.value)})}
+                    onChange={e =>
+                      setRatingForm({ ...ratingForm, rating: parseInt(e.target.value) })
+                    }
                   >
                     <option value="5">⭐⭐⭐⭐⭐ Excelente (5 estrellas)</option>
                     <option value="4">⭐⭐⭐⭐ Muy bueno (4 estrellas)</option>
@@ -682,22 +704,24 @@ const UserProfile = () => {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Tu opinión</label>
-                  <textarea 
-                    className="form-input" 
+                  <textarea
+                    className="form-input"
                     rows="4"
                     value={ratingForm.comment}
-                    onChange={(e) => setRatingForm({...ratingForm, comment: e.target.value})}
+                    onChange={e => setRatingForm({ ...ratingForm, comment: e.target.value })}
                     placeholder="Comparte tu experiencia con este usuario..."
                     maxLength="500"
                   />
-                  <small style={{ color: '#666' }}>{ratingForm.comment.length}/500 caracteres</small>
+                  <small style={{ color: '#666' }}>
+                    {ratingForm.comment.length}/500 caracteres
+                  </small>
                 </div>
                 <button type="submit" className="btn-primary">
                   {hasRated ? 'Actualizar calificación' : 'Publicar mi opinión'}
                 </button>
                 {hasRated && (
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={handleDeleteRating}
                     style={{
                       width: '100%',
@@ -709,10 +733,10 @@ const UserProfile = () => {
                       fontSize: '1rem',
                       fontWeight: '600',
                       cursor: 'pointer',
-                      marginTop: '0.5rem'
+                      marginTop: '0.5rem',
                     }}
-                    onMouseOver={(e) => e.target.style.background = '#c0392b'}
-                    onMouseOut={(e) => e.target.style.background = '#e74c3c'}
+                    onMouseOver={e => (e.target.style.background = '#c0392b')}
+                    onMouseOut={e => (e.target.style.background = '#e74c3c')}
                   >
                     🗑️ Eliminar calificación
                   </button>
@@ -739,7 +763,7 @@ const UserProfile = () => {
                     type="text"
                     className="form-input"
                     value={editForm.first_name}
-                    onChange={(e) => setEditForm({...editForm, first_name: e.target.value})}
+                    onChange={e => setEditForm({ ...editForm, first_name: e.target.value })}
                     placeholder="Cómo te llamas"
                     required
                   />
@@ -750,7 +774,7 @@ const UserProfile = () => {
                     type="text"
                     className="form-input"
                     value={editForm.last_name}
-                    onChange={(e) => setEditForm({...editForm, last_name: e.target.value})}
+                    onChange={e => setEditForm({ ...editForm, last_name: e.target.value })}
                     placeholder="Tu apellido"
                     required
                   />
@@ -764,7 +788,7 @@ const UserProfile = () => {
                     type="tel"
                     className="form-input"
                     value={editForm.phone_number}
-                    onChange={(e) => setEditForm({...editForm, phone_number: e.target.value})}
+                    onChange={e => setEditForm({ ...editForm, phone_number: e.target.value })}
                     placeholder="Para contactarte si ganas"
                   />
                 </div>
@@ -773,7 +797,7 @@ const UserProfile = () => {
                   <select
                     className="form-input"
                     value={editForm.gender}
-                    onChange={(e) => setEditForm({...editForm, gender: e.target.value})}
+                    onChange={e => setEditForm({ ...editForm, gender: e.target.value })}
                     required
                   >
                     <option value="">Seleccione...</option>
@@ -792,7 +816,7 @@ const UserProfile = () => {
                   type="text"
                   className="form-input"
                   value={editForm.address}
-                  onChange={(e) => setEditForm({...editForm, address: e.target.value})}
+                  onChange={e => setEditForm({ ...editForm, address: e.target.value })}
                   placeholder="Para enviarte premios físicos"
                 />
               </div>
@@ -838,7 +862,7 @@ const UserProfile = () => {
                   <select
                     className="form-input"
                     value={editForm.city}
-                    onChange={(e) => setEditForm({...editForm, city: e.target.value})}
+                    onChange={e => setEditForm({ ...editForm, city: e.target.value })}
                     required
                     disabled={!selectedState}
                   >
@@ -853,9 +877,9 @@ const UserProfile = () => {
               </div>
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                <button 
-                  type="button" 
-                  className="btn-secondary" 
+                <button
+                  type="button"
+                  className="btn-secondary"
                   onClick={() => {
                     setIsEditing(false);
                     setActiveTab('rifas');
@@ -877,7 +901,8 @@ const UserProfile = () => {
       {activeTab === 'payments' && isOwnProfile && (
         <div className="tab-content active">
           <div className="guidance-text" style={{ color: 'white' }}>
-            Gestiona tus métodos de pago para participar en rifas. Puedes agregar tarjetas de crédito, débito o billeteras digitales.
+            Gestiona tus métodos de pago para participar en rifas. Puedes agregar tarjetas de
+            crédito, débito o billeteras digitales.
           </div>
 
           {/* Botón agregar */}
@@ -889,13 +914,15 @@ const UserProfile = () => {
 
           {/* Lista de métodos de pago */}
           {paymentMethods.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '3rem',
-              background: 'rgba(255,255,255,0.05)',
-              borderRadius: '12px',
-              color: '#999'
-            }}>
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '3rem',
+                background: 'rgba(255,255,255,0.05)',
+                borderRadius: '12px',
+                color: '#999',
+              }}
+            >
               <p style={{ fontSize: '3rem', margin: '0 0 1rem 0' }}>💳</p>
               <p style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'white' }}>
                 Aún no tienes métodos de pago registrados
@@ -906,27 +933,33 @@ const UserProfile = () => {
             </div>
           ) : (
             <div className="rifa-grid">
-              {paymentMethods.map((method) => (
+              {paymentMethods.map(method => (
                 <div key={method.id} className="rifa-card">
                   {/* Header con icono y estado */}
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    padding: '1rem',
-                    borderBottom: '1px solid rgba(255,255,255,0.1)'
-                  }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '1rem',
+                      borderBottom: '1px solid rgba(255,255,255,0.1)',
+                    }}
+                  >
                     <div style={{ fontSize: '2.5rem' }}>
                       {getCardIcon(method.payment_method_type)}
                     </div>
-                    <span style={{
-                      fontSize: '0.85rem',
-                      color: method.payment_method_is_active ? '#4CAF50' : '#999',
-                      fontWeight: '600',
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: '12px',
-                      background: method.payment_method_is_active ? 'rgba(76,175,80,0.1)' : 'rgba(153,153,153,0.1)'
-                    }}>
+                    <span
+                      style={{
+                        fontSize: '0.85rem',
+                        color: method.payment_method_is_active ? '#4CAF50' : '#999',
+                        fontWeight: '600',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '12px',
+                        background: method.payment_method_is_active
+                          ? 'rgba(76,175,80,0.1)'
+                          : 'rgba(153,153,153,0.1)',
+                      }}
+                    >
                       {method.payment_method_is_active ? '● Activo' : '● Inactivo'}
                     </span>
                   </div>
@@ -937,13 +970,17 @@ const UserProfile = () => {
                       <strong>Tipo:</strong> {method.payment_method_type_name}
                     </div>
 
-                    <div className="rifa-card-content" style={{ 
-                      fontSize: '1.1rem', 
-                      fontWeight: '500', 
-                      letterSpacing: '0.1rem',
-                      fontFamily: 'monospace'
-                    }}>
-                      <strong>Número:</strong><br/>
+                    <div
+                      className="rifa-card-content"
+                      style={{
+                        fontSize: '1.1rem',
+                        fontWeight: '500',
+                        letterSpacing: '0.1rem',
+                        fontFamily: 'monospace',
+                      }}
+                    >
+                      <strong>Número:</strong>
+                      <br />
                       {method.masked_card_number}
                     </div>
 
@@ -952,10 +989,14 @@ const UserProfile = () => {
                     </div>
 
                     <div className="rifa-card-content">
-                      <strong>Vence:</strong> {new Date(method.paymenth_method_expiration_date).toLocaleDateString('es-ES', {
-                        month: 'long',
-                        year: 'numeric'
-                      })}
+                      <strong>Vence:</strong>{' '}
+                      {new Date(method.paymenth_method_expiration_date).toLocaleDateString(
+                        'es-ES',
+                        {
+                          month: 'long',
+                          year: 'numeric',
+                        }
+                      )}
                     </div>
 
                     {/* Botones de acción */}
@@ -985,7 +1026,7 @@ const UserProfile = () => {
 
       {/* Modal para calificar (si se muestra desde el botón) */}
       {showRatingModal && (
-        <div 
+        <div
           style={{
             position: 'fixed',
             top: 0,
@@ -996,25 +1037,32 @@ const UserProfile = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 9999
+            zIndex: 9999,
           }}
           onClick={() => setShowRatingModal(false)}
         >
-          <div 
+          <div
             className="form-container"
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
             style={{ margin: 0, maxWidth: '500px' }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1rem',
+              }}
+            >
               <h3>{hasRated ? 'Editar calificación' : `Calificar a ${user?.first_name}`}</h3>
-              <button 
+              <button
                 onClick={() => setShowRatingModal(false)}
                 style={{
                   background: 'none',
                   border: 'none',
                   fontSize: '1.5rem',
                   cursor: 'pointer',
-                  color: '#666'
+                  color: '#666',
                 }}
               >
                 ✕
@@ -1024,10 +1072,10 @@ const UserProfile = () => {
             <form onSubmit={handleRatingSubmit}>
               <div className="form-group">
                 <label className="form-label">Calificación</label>
-                <select 
+                <select
                   className="form-input"
                   value={ratingForm.rating}
-                  onChange={(e) => setRatingForm({...ratingForm, rating: parseInt(e.target.value)})}
+                  onChange={e => setRatingForm({ ...ratingForm, rating: parseInt(e.target.value) })}
                 >
                   <option value="5">⭐⭐⭐⭐⭐ Excelente (5 estrellas)</option>
                   <option value="4">⭐⭐⭐⭐ Muy bueno (4 estrellas)</option>
@@ -1043,7 +1091,7 @@ const UserProfile = () => {
                   className="form-input"
                   rows="4"
                   value={ratingForm.comment}
-                  onChange={(e) => setRatingForm({...ratingForm, comment: e.target.value})}
+                  onChange={e => setRatingForm({ ...ratingForm, comment: e.target.value })}
                   placeholder="Comparte tu experiencia..."
                   maxLength="500"
                 />
@@ -1051,8 +1099,8 @@ const UserProfile = () => {
               </div>
 
               <div style={{ display: 'flex', gap: '1rem' }}>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn-secondary"
                   onClick={() => setShowRatingModal(false)}
                   style={{ flex: 1 }}
@@ -1063,10 +1111,10 @@ const UserProfile = () => {
                   {hasRated ? 'Actualizar Calificación' : 'Enviar Calificación'}
                 </button>
               </div>
-              
+
               {hasRated && (
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={handleDeleteRating}
                   style={{
                     width: '100%',
@@ -1078,10 +1126,10 @@ const UserProfile = () => {
                     fontSize: '1rem',
                     fontWeight: '600',
                     cursor: 'pointer',
-                    marginTop: '1rem'
+                    marginTop: '1rem',
                   }}
-                  onMouseOver={(e) => e.target.style.background = '#c0392b'}
-                  onMouseOut={(e) => e.target.style.background = '#e74c3c'}
+                  onMouseOver={e => (e.target.style.background = '#c0392b')}
+                  onMouseOut={e => (e.target.style.background = '#e74c3c')}
                 >
                   🗑️ Eliminar calificación
                 </button>
@@ -1093,17 +1141,25 @@ const UserProfile = () => {
 
       {/* Modal para métodos de pago */}
       {showPaymentModal && (
-        <div
-          className="config-modal"
-          onClick={() => setShowPaymentModal(false)}
-        >
+        <div className="config-modal" onClick={() => setShowPaymentModal(false)}>
           <div
             className="form-container"
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
             style={{ margin: 0, maxWidth: '500px' }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3>{paymentModalMode === 'create' ? '➕ Agregar método de pago' : '✏️ Editar método de pago'}</h3>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1rem',
+              }}
+            >
+              <h3>
+                {paymentModalMode === 'create'
+                  ? '➕ Agregar método de pago'
+                  : '✏️ Editar método de pago'}
+              </h3>
               <button
                 onClick={() => setShowPaymentModal(false)}
                 style={{
@@ -1111,7 +1167,7 @@ const UserProfile = () => {
                   border: 'none',
                   fontSize: '1.5rem',
                   cursor: 'pointer',
-                  color: '#666'
+                  color: '#666',
                 }}
               >
                 ✕
@@ -1124,7 +1180,9 @@ const UserProfile = () => {
                 <select
                   className="form-input"
                   value={paymentForm.payment_method_type}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, payment_method_type: e.target.value })}
+                  onChange={e =>
+                    setPaymentForm({ ...paymentForm, payment_method_type: e.target.value })
+                  }
                   required
                 >
                   <option value="">Selecciona un tipo...</option>
@@ -1142,7 +1200,9 @@ const UserProfile = () => {
                   type="text"
                   className="form-input"
                   value={paymentForm.paymenth_method_holder_name}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, paymenth_method_holder_name: e.target.value })}
+                  onChange={e =>
+                    setPaymentForm({ ...paymentForm, paymenth_method_holder_name: e.target.value })
+                  }
                   placeholder="Como aparece en la tarjeta"
                   required
                 />
@@ -1150,13 +1210,14 @@ const UserProfile = () => {
 
               <div className="form-group">
                 <label className="form-label">
-                  Número de tarjeta {paymentModalMode === 'edit' ? '(dejar vacío para mantener)' : '*'}
+                  Número de tarjeta{' '}
+                  {paymentModalMode === 'edit' ? '(dejar vacío para mantener)' : '*'}
                 </label>
                 <input
                   type="text"
                   className="form-input"
                   value={paymentForm.card_number}
-                  onChange={(e) => {
+                  onChange={e => {
                     const value = e.target.value.replace(/\s/g, '');
                     if (/^\d*$/.test(value) && value.length <= 19) {
                       setPaymentForm({ ...paymentForm, card_number: value });
@@ -1167,10 +1228,9 @@ const UserProfile = () => {
                   required={paymentModalMode === 'create'}
                 />
                 <small style={{ color: '#666', fontSize: '0.85rem' }}>
-                  {paymentModalMode === 'edit' 
+                  {paymentModalMode === 'edit'
                     ? 'Solo ingresa el número si deseas actualizarlo'
-                    : 'Ingresa el número completo sin espacios'
-                  }
+                    : 'Ingresa el número completo sin espacios'}
                 </small>
               </div>
 
@@ -1180,7 +1240,12 @@ const UserProfile = () => {
                   type="date"
                   className="form-input"
                   value={paymentForm.paymenth_method_expiration_date}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, paymenth_method_expiration_date: e.target.value })}
+                  onChange={e =>
+                    setPaymentForm({
+                      ...paymentForm,
+                      paymenth_method_expiration_date: e.target.value,
+                    })
+                  }
                   min={new Date().toISOString().split('T')[0]}
                   required
                 />
@@ -1195,11 +1260,7 @@ const UserProfile = () => {
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  style={{ flex: 1 }}
-                >
+                <button type="submit" className="btn-primary" style={{ flex: 1 }}>
                   {paymentModalMode === 'create' ? 'Agregar' : 'Guardar cambios'}
                 </button>
               </div>

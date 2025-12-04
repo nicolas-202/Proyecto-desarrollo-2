@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Country(models.Model):
     country_name = models.CharField(max_length=50, unique=True)
     country_code = models.CharField(max_length=4, unique=True)
@@ -8,6 +9,7 @@ class Country(models.Model):
 
     def __str__(self):
         return self.country_name
+
 
 class State(models.Model):
     state_name = models.CharField(max_length=50)
@@ -19,14 +21,14 @@ class State(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['state_name', 'state_country'],
-                name='unique_state_per_country'
+                fields=["state_name", "state_country"], name="unique_state_per_country"
             )
         ]
 
     def __str__(self):
         return self.state_name
-    
+
+
 class City(models.Model):
     city_name = models.CharField(max_length=50)
     city_code = models.CharField(max_length=4)
@@ -37,8 +39,7 @@ class City(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['city_name', 'city_state'],
-                name='unique_city_per_state'
+                fields=["city_name", "city_state"], name="unique_city_per_state"
             )
         ]
 

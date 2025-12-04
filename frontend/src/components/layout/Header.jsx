@@ -7,7 +7,7 @@ function Header() {
   const { user, isAuthenticated, logout, isAdmin, isLoading } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleNavigate = (path) => {
+  const handleNavigate = path => {
     navigate(path);
     setMobileMenuOpen(false); // Cerrar menú móvil al navegar
   };
@@ -20,9 +20,7 @@ function Header() {
           <div className="logo" onClick={() => handleNavigate('/')}>
             🎰 RifaPlus
           </div>
-          <div style={{ color: 'white', fontSize: '0.9rem' }}>
-            Cargando...
-          </div>
+          <div style={{ color: 'white', fontSize: '0.9rem' }}>Cargando...</div>
         </div>
       </div>
     );
@@ -37,7 +35,7 @@ function Header() {
         </div>
 
         {/* Botón hamburguesa para móvil */}
-        <button 
+        <button
           className="mobile-menu-btn"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
@@ -51,45 +49,30 @@ function Header() {
 
         {/* Menú de navegación */}
         <div className={`nav-menu ${mobileMenuOpen ? 'mobile-open' : ''}`}>
-          <div 
-            className="nav-item active" 
-            onClick={() => handleNavigate('/')}
-          >
+          <div className="nav-item active" onClick={() => handleNavigate('/')}>
             Descubre rifas
           </div>
 
           {/* Buscar usuarios - Disponible para todos */}
-          <div 
-            className="nav-item" 
-            onClick={() => handleNavigate('/search-users')}
-          >
+          <div className="nav-item" onClick={() => handleNavigate('/search-users')}>
             👥 Usuarios
           </div>
 
           {/* Menú solo para usuarios autenticados */}
           {isAuthenticated && (
             <>
-              <div 
-                className="nav-item" 
-                onClick={() => handleNavigate('/my-numbers')}
-              >
-              🔢 Mis números
+              <div className="nav-item" onClick={() => handleNavigate('/my-numbers')}>
+                🔢 Mis números
               </div>
-              <div 
-                className="nav-item" 
-                onClick={() => handleNavigate('/create-raffle')}
-              >
-              🏆 Lanza tu rifa
+              <div className="nav-item" onClick={() => handleNavigate('/create-raffle')}>
+                🏆 Lanza tu rifa
               </div>
             </>
           )}
 
           {/* Configuración (solo para administradores) */}
           {isAuthenticated && isAdmin && (
-            <div 
-              className="nav-item" 
-              onClick={() => handleNavigate('/config')}
-            >
+            <div className="nav-item" onClick={() => handleNavigate('/config')}>
               ⚙️ Configuración
             </div>
           )}
@@ -98,24 +81,18 @@ function Header() {
           {!isAuthenticated ? (
             // Usuario no autenticado - Mostrar botón Entrar
             <div id="nav-auth">
-              <button 
-                className="btn-primary" 
-                onClick={() => handleNavigate('/auth')}
-              >
+              <button className="btn-primary" onClick={() => handleNavigate('/auth')}>
                 Entrar
               </button>
             </div>
           ) : (
             // Usuario autenticado - Mostrar menú de usuario
             <div id="nav-user">
-              <div 
-                className="nav-item" 
-                onClick={() => handleNavigate(`/user/${user?.id}`)}
-              >
+              <div className="nav-item" onClick={() => handleNavigate(`/user/${user?.id}`)}>
                 👤 {user?.first_name || 'Mi perfil'}
               </div>
-              <button 
-                className="btn-secondary" 
+              <button
+                className="btn-secondary"
                 onClick={() => {
                   logout();
                   handleNavigate('/');
