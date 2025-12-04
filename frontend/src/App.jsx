@@ -9,6 +9,8 @@ import EditRaffle from './pages/EditRaffle'
 import MyNumbers from './pages/MyNumbers'
 import UserProfile from './pages/UserProfile'
 import SearchUsers from './pages/SearchUsers'
+import Config from './pages/Config'
+import ConfigCategory from './pages/ConfigCategory'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -36,6 +38,16 @@ function App() {
           } />
           <Route path="user/:userId" element={<UserProfile />} />
           <Route path="search-users" element={<SearchUsers />} />
+          <Route path="config" element={
+            <ProtectedRoute>
+              <Config />
+            </ProtectedRoute>
+          } />
+          <Route path="config/:categoryId" element={
+            <ProtectedRoute>
+              <ConfigCategory />
+            </ProtectedRoute>
+          } />
         </Route>
       </Routes>
     </AuthProvider>

@@ -37,16 +37,13 @@ class PaymentMethodViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Filtrar métodos de pago según el usuario
+        Todos los usuarios (incluyendo administradores) solo ven sus propios métodos
         """
-        if self.request.user.is_admin:
-            # Los administradores pueden ver todos los métodos de pago
-            return PaymentMethod.objects.filter(payment_method_is_active=True)
-        else:
-            # Los usuarios solo ven sus propios métodos de pago
-            return PaymentMethod.objects.filter(
-                user=self.request.user,
-                payment_method_is_active=True
-            )
+        # Todos los usuarios solo ven sus propios métodos de pago
+        return PaymentMethod.objects.filter(
+            user=self.request.user,
+            payment_method_is_active=True
+        )
 
     def perform_create(self, serializer):
         """Asignar el usuario actual al crear"""

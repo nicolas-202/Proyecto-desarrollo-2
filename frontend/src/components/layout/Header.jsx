@@ -75,7 +75,6 @@ function Header() {
               >
               🔢 Mis números
               </div>
-
               <div 
                 className="nav-item" 
                 onClick={() => handleNavigate('/create-raffle')}

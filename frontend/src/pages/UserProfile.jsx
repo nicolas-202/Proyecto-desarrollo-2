@@ -11,10 +11,15 @@ const UserProfile = () => {
   const [user, setUser] = useState(null);
   const [interactions, setInteractions] = useState([]);
   const [raffles, setRaffles] = useState([]);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [paymentMethodTypes, setPaymentMethodTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('rifas');
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentModalMode, setPaymentModalMode] = useState('create');
+  const [currentPaymentMethod, setCurrentPaymentMethod] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [hasRated, setHasRated] = useState(false);
   const [existingRatingId, setExistingRatingId] = useState(null);
@@ -35,6 +40,14 @@ const UserProfile = () => {
     comment: ''
   });
   
+  // Estados para métodos de pago
+  const [paymentForm, setPaymentForm] = useState({
+    payment_method_type: '',
+    paymenth_method_holder_name: '',
+    card_number: '',
+    paymenth_method_expiration_date: '',
+  });
+  
   // Estados para ubicación
   const [countries, setCountries] = useState([]);
   const [states, setStates] = useState([]);
@@ -51,6 +64,7 @@ const UserProfile = () => {
     fetchUserRaffles();
     if (isOwnProfile) {
       fetchLocationData();
+      fetchPaymentMethods();
     }
   }, [userId]);
 
@@ -284,6 +298,113 @@ const UserProfile = () => {
     }
   };
 
+  // Funciones para métodos de pago
+  const fetchPaymentMethods = async () => {
+    try {
+      const [methodsRes, typesRes] = await Promise.all([
+        apiClient.get('/user-info/payment-methods/'),
+        apiClient.get('/user-info/payment-method-types/')
+      ]);
+      setPaymentMethods(methodsRes.data);
+      setPaymentMethodTypes(typesRes.data);
+    } catch (error) {
+      console.error('Error al cargar métodos de pago:', error);
+    }
+  };
+
+  const handleCreatePayment = () => {
+    setPaymentModalMode('create');
+    setCurrentPaymentMethod(null);
+    setPaymentForm({
+      payment_method_type: '',
+      paymenth_method_holder_name: '',
+      card_number: '',
+      paymenth_method_expiration_date: '',
+    });
+    setShowPaymentModal(true);
+  };
+
+  const handleEditPayment = (method) => {
+    setPaymentModalMode('edit');
+    setCurrentPaymentMethod(method);
+    setPaymentForm({
+      payment_method_type: method.payment_method_type,
+      paymenth_method_holder_name: method.paymenth_method_holder_name,
+      card_number: '',
+      paymenth_method_expiration_date: method.paymenth_method_expiration_date,
+    });
+    setShowPaymentModal(true);
+  };
+
+  const handleDeletePayment = async (method) => {
+    if (!window.confirm(`¿Estás seguro de eliminar el método de pago terminado en ${method.last_digits}?`)) {
+      return;
+    }
+
+    try {
+      await apiClient.delete(`/user-info/payment-methods/${method.id}/`);
+      alert('✅ Método de pago eliminado');
+      await fetchPaymentMethods();
+    } catch (error) {
+      console.error('Error al eliminar:', error);
+      alert(error.response?.data?.detail || 'Error al eliminar');
+    }
+  };
+
+  const handlePaymentSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      if (paymentModalMode === 'create') {
+        await apiClient.post('/user-info/payment-methods/', paymentForm);
+        alert('✅ Método de pago agregado correctamente');
+      } else {
+        const updateData = {
+          payment_method_type: paymentForm.payment_method_type,
+          paymenth_method_holder_name: paymentForm.paymenth_method_holder_name,
+          paymenth_method_expiration_date: paymentForm.paymenth_method_expiration_date,
+        };
+        
+        if (paymentForm.card_number) {
+          updateData.card_number = paymentForm.card_number;
+        }
+        
+        await apiClient.patch(`/user-info/payment-methods/${currentPaymentMethod.id}/`, updateData);
+        alert('✅ Método de pago actualizado');
+      }
+      
+      setShowPaymentModal(false);
+      await fetchPaymentMethods();
+    } catch (error) {
+      console.error('Error al guardar:', error);
+      
+      let errorMsg = 'Error al guardar';
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (typeof errorData === 'object') {
+          errorMsg = Object.entries(errorData)
+            .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+            .join('\n');
+        } else {
+          errorMsg = errorData.detail || errorData.message || String(errorData);
+        }
+      }
+      alert(errorMsg);
+    }
+  };
+
+  const getCardIcon = (typeId) => {
+    const type = paymentMethodTypes.find(t => t.id === typeId);
+    const code = type?.payment_method_type_code?.toLowerCase() || '';
+    
+    if (code.includes('vis')) return '💳';
+    if (code.includes('mas')) return '💳';
+    if (code.includes('ame')) return '💳';
+    if (code.includes('nequi') || code.includes('neq')) return '📱';
+    if (code.includes('davi') || code.includes('dav')) return '📱';
+    return '💰';
+  };
+
   const calculateAverageRating = () => {
     if (interactions.length === 0) return 0;
     const sum = interactions.reduce((acc, int) => acc + int.interaction_rating, 0);
@@ -382,15 +503,23 @@ const UserProfile = () => {
           Opiniones
         </div>
         {isOwnProfile && (
-          <div 
-            className={`tab ${activeTab === 'edit' ? 'active' : ''}`}
-            onClick={() => {
-              setActiveTab('edit');
-              setIsEditing(true);
-            }}
-          >
-            Editar perfil
-          </div>
+          <>
+            <div 
+              className={`tab ${activeTab === 'edit' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('edit');
+                setIsEditing(true);
+              }}
+            >
+              Editar perfil
+            </div>
+            <div 
+              className={`tab ${activeTab === 'payments' ? 'active' : ''}`}
+              onClick={() => setActiveTab('payments')}
+            >
+              💳 Métodos de pago
+            </div>
+          </>
         )}
       </div>
 
@@ -744,6 +873,116 @@ const UserProfile = () => {
         </div>
       )}
 
+      {/* Tab Content: Métodos de Pago */}
+      {activeTab === 'payments' && isOwnProfile && (
+        <div className="tab-content active">
+          <div className="guidance-text" style={{ color: 'white' }}>
+            Gestiona tus métodos de pago para participar en rifas. Puedes agregar tarjetas de crédito, débito o billeteras digitales.
+          </div>
+
+          {/* Botón agregar */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+            <button className="btn-primary" onClick={handleCreatePayment}>
+              ➕ Agregar método de pago
+            </button>
+          </div>
+
+          {/* Lista de métodos de pago */}
+          {paymentMethods.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '3rem',
+              background: 'rgba(255,255,255,0.05)',
+              borderRadius: '12px',
+              color: '#999'
+            }}>
+              <p style={{ fontSize: '3rem', margin: '0 0 1rem 0' }}>💳</p>
+              <p style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'white' }}>
+                Aún no tienes métodos de pago registrados
+              </p>
+              <button className="btn-primary" onClick={handleCreatePayment}>
+                Agregar mi primer método
+              </button>
+            </div>
+          ) : (
+            <div className="rifa-grid">
+              {paymentMethods.map((method) => (
+                <div key={method.id} className="rifa-card">
+                  {/* Header con icono y estado */}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    padding: '1rem',
+                    borderBottom: '1px solid rgba(255,255,255,0.1)'
+                  }}>
+                    <div style={{ fontSize: '2.5rem' }}>
+                      {getCardIcon(method.payment_method_type)}
+                    </div>
+                    <span style={{
+                      fontSize: '0.85rem',
+                      color: method.payment_method_is_active ? '#4CAF50' : '#999',
+                      fontWeight: '600',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '12px',
+                      background: method.payment_method_is_active ? 'rgba(76,175,80,0.1)' : 'rgba(153,153,153,0.1)'
+                    }}>
+                      {method.payment_method_is_active ? '● Activo' : '● Inactivo'}
+                    </span>
+                  </div>
+
+                  {/* Contenido */}
+                  <div className="rifa-content">
+                    <div className="rifa-card-content">
+                      <strong>Tipo:</strong> {method.payment_method_type_name}
+                    </div>
+
+                    <div className="rifa-card-content" style={{ 
+                      fontSize: '1.1rem', 
+                      fontWeight: '500', 
+                      letterSpacing: '0.1rem',
+                      fontFamily: 'monospace'
+                    }}>
+                      <strong>Número:</strong><br/>
+                      {method.masked_card_number}
+                    </div>
+
+                    <div className="rifa-card-content">
+                      <strong>Titular:</strong> {method.paymenth_method_holder_name}
+                    </div>
+
+                    <div className="rifa-card-content">
+                      <strong>Vence:</strong> {new Date(method.paymenth_method_expiration_date).toLocaleDateString('es-ES', {
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </div>
+
+                    {/* Botones de acción */}
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                      <button
+                        onClick={() => handleEditPayment(method)}
+                        className="btn-edit"
+                        style={{ flex: 1 }}
+                      >
+                        ✏️ Editar
+                      </button>
+                      <button
+                        onClick={() => handleDeletePayment(method)}
+                        className="btn-delete"
+                        style={{ flex: 1 }}
+                      >
+                        🗑️ Eliminar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Modal para calificar (si se muestra desde el botón) */}
       {showRatingModal && (
         <div 
@@ -847,6 +1086,123 @@ const UserProfile = () => {
                   🗑️ Eliminar calificación
                 </button>
               )}
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para métodos de pago */}
+      {showPaymentModal && (
+        <div
+          className="config-modal"
+          onClick={() => setShowPaymentModal(false)}
+        >
+          <div
+            className="form-container"
+            onClick={(e) => e.stopPropagation()}
+            style={{ margin: 0, maxWidth: '500px' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3>{paymentModalMode === 'create' ? '➕ Agregar método de pago' : '✏️ Editar método de pago'}</h3>
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  color: '#666'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handlePaymentSubmit}>
+              <div className="form-group">
+                <label className="form-label">Tipo de método de pago *</label>
+                <select
+                  className="form-input"
+                  value={paymentForm.payment_method_type}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, payment_method_type: e.target.value })}
+                  required
+                >
+                  <option value="">Selecciona un tipo...</option>
+                  {paymentMethodTypes.map(type => (
+                    <option key={type.id} value={type.id}>
+                      {type.payment_method_type_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Nombre del titular *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={paymentForm.paymenth_method_holder_name}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, paymenth_method_holder_name: e.target.value })}
+                  placeholder="Como aparece en la tarjeta"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  Número de tarjeta {paymentModalMode === 'edit' ? '(dejar vacío para mantener)' : '*'}
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={paymentForm.card_number}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\s/g, '');
+                    if (/^\d*$/.test(value) && value.length <= 19) {
+                      setPaymentForm({ ...paymentForm, card_number: value });
+                    }
+                  }}
+                  placeholder="1234567890123456"
+                  maxLength="19"
+                  required={paymentModalMode === 'create'}
+                />
+                <small style={{ color: '#666', fontSize: '0.85rem' }}>
+                  {paymentModalMode === 'edit' 
+                    ? 'Solo ingresa el número si deseas actualizarlo'
+                    : 'Ingresa el número completo sin espacios'
+                  }
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Fecha de expiración *</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={paymentForm.paymenth_method_expiration_date}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, paymenth_method_expiration_date: e.target.value })}
+                  min={new Date().toISOString().split('T')[0]}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setShowPaymentModal(false)}
+                  style={{ flex: 1 }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{ flex: 1 }}
+                >
+                  {paymentModalMode === 'create' ? 'Agregar' : 'Guardar cambios'}
+                </button>
+              </div>
             </form>
           </div>
         </div>

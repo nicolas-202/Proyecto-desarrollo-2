@@ -236,13 +236,13 @@ function Home() {
                       </button>
                     )
                   ) : (
-                    // Si no está autenticado
+                    // Si no está autenticado - dejar ver la rifa
                     <button 
                       className="btn-primary" 
                       style={{width: '100%', fontSize: '0.9rem'}}
-                      onClick={() => window.location.href = '/auth'}
+                      onClick={() => navigate(`/raffle/${rifa.id}`)}
                     >
-                      🔐 Entra para participar
+                      👁️ Ver rifa
                     </button>
                   )}
                 </div>
