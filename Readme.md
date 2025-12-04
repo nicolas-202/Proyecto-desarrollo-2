@@ -163,6 +163,6 @@ contraseña: admin123
 # AÑADIR CI/CD LOCAL PARA PRE-COMMIT
 
 solamente se debe de correr este comento en la raiz del proyecto 
-´´´powershell
+```powershell
 cp .github/scripts/pre-commit-check.sh .git/hooks/pre-commit
-´´´
+```
