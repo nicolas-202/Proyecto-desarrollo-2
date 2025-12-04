@@ -30,51 +30,51 @@ class RefundFunctionalityTestCase(TestCase):
         """Configuración inicial para tests de reembolsos"""
         from datetime import date
 
-        # Generar identificador único para esta ejecución
-        self.test_id = str(uuid.uuid4())[:8]
+        # Generar identificador único corto para esta ejecución (solo 2 caracteres)
+        self.test_id = str(uuid.uuid4())[:2]
 
-        # Ubicación - usar UUIDs para garantizar unicidad total
+        # Ubicación - códigos de máximo 4 caracteres
         self.country = Country.objects.create(
-            country_name=f"Colombia-{self.test_id}", country_code=f"CO-{self.test_id}"
+            country_name=f"Colombia-{self.test_id}", country_code=f"C{self.test_id}"
         )
         self.state = State.objects.create(
             state_name=f"Bogotá-{self.test_id}",
-            state_code=f"BOG-{self.test_id}",
+            state_code=f"B{self.test_id}",
             state_country=self.country,
         )
         self.city = City.objects.create(
             city_name=f"Bogotá-{self.test_id}",
-            city_code=f"BOG-{self.test_id}",
+            city_code=f"BG{self.test_id}",
             city_state=self.state,
         )
 
-        # Datos de usuario - usar UUIDs únicos
+        # Datos de usuario - códigos de máximo 4 caracteres
         self.gender = Gender.objects.create(
-            gender_name=f"Masculino-{self.test_id}", gender_code=f"M-{self.test_id}"
+            gender_name=f"Masculino-{self.test_id}", gender_code=f"M{self.test_id}"
         )
         self.document_type = DocumentType.objects.create(
             document_type_name=f"Cedula-{self.test_id}",
-            document_type_code=f"CC-{self.test_id}",
+            document_type_code=f"C{self.test_id}",
         )
 
-        # Datos para rifas - usar UUIDs únicos
+        # Datos para rifas - códigos de máximo 4 caracteres
         self.prize_type = PrizeType.objects.create(
             prize_type_name=f"Dinero-{self.test_id}",
-            prize_type_code=f"DIN-{self.test_id}",
+            prize_type_code=f"D{self.test_id}",
         )
         self.active_state = StateRaffle.objects.create(
             state_raffle_name=f"Activa-{self.test_id}",
-            state_raffle_code=f"ACT-{self.test_id}",
+            state_raffle_code=f"A{self.test_id}",
         )
         self.cancelled_state = StateRaffle.objects.create(
             state_raffle_name=f"Cancelada-{self.test_id}",
-            state_raffle_code=f"CAN-{self.test_id}",
+            state_raffle_code=f"CA{self.test_id}",
         )
 
-        # TIPO DE MÉTODO DE PAGO
+        # TIPO DE MÉTODO DE PAGO - código de máximo 4 caracteres
         self.payment_method_type = PaymentMethodType.objects.create(
             payment_method_type_name=f"Efectivo-{self.test_id}",
-            payment_method_type_code=f"EFE-{self.test_id}",
+            payment_method_type_code=f"E{self.test_id}",
         )
 
         # Usuarios - usar UUIDs completamente únicos
