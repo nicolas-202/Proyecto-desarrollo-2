@@ -190,7 +190,7 @@ function CreateRaffle() {
     }
 
     // NUEVO: Validar que el mínimo no sea mayor que el total
-    if (formData.raffle_minimum_numbers_sold < formData.raffle_number_amount) {
+    if (parseInt(formData.raffle_minimum_numbers_sold) > parseInt(formData.raffle_number_amount)) {
       showMessage('El mínimo de números para sortear no puede ser mayor al total 📊', 'error');
       return;
     }
