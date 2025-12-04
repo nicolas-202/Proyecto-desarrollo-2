@@ -73,22 +73,14 @@ function Header() {
                 className="nav-item" 
                 onClick={() => handleNavigate('/my-numbers')}
               >
-                Mis números
+              🔢 Mis números
               </div>
 
               <div 
                 className="nav-item" 
                 onClick={() => handleNavigate('/create-raffle')}
               >
-                Lanza tu rifa
-              </div>
-
-              <div 
-                className="nav-item notification-badge" 
-                onClick={() => {/* TODO: toggleNotifications */}}
-              >
-                🔔
-                <span className="badge-count">0</span>
+              🏆 Lanza tu rifa
               </div>
             </>
           )}

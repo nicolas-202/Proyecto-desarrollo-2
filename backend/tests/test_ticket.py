@@ -19,10 +19,6 @@ from user.models import User
 
 
 class TicketSystemTestCase(APITestCase):
-    """
-    Tests optimizados para el sistema completo de tickets y rifas
-    Enfoque en funcionalidades críticas con datos compartidos
-    """
     
     @classmethod
     def setUpTestData(cls):

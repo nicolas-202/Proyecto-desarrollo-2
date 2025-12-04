@@ -562,8 +562,9 @@ function BuyNumbers(){
                     {/* Información de compra */}
                     <div>
                         <h3>Tu compra</h3>
-                        {/* Select de métodos de pago */}
-                        {isAuthenticated && (
+                        {/* Select de métodos de pago - Solo si la rifa está activa */}
+                        {isAuthenticated && rifa.raffle_state?.state_raffle_name === 'Activa' && (
+                            
                             <div className="form-group">
                                 <label className="form-label">Selecciona método de pago</label>
                                 <select
@@ -586,7 +587,7 @@ function BuyNumbers(){
                             {selectedNumbers.length > 0 ? (
                                 <>
                                     <p><strong>Números seleccionados:</strong> {selectedNumbers.sort((a,b) => a-b).join(', ')}</p>
-                                    <p><strong>Total a pagar:</strong> {(selectedNumbers.length * Number(rifa.raffle_number_price)).toLocaleString()}</p>
+                                    <p><strong>Total a pagar:</strong> ${(selectedNumbers.length * Number(rifa.raffle_number_price)).toLocaleString()}</p>
                                 </>
                             ) : (
                                 <p style={{color: '#666'}}>Selecciona números para ver el total</p>

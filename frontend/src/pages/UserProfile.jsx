@@ -136,9 +136,8 @@ const UserProfile = () => {
 
   const fetchUserRaffles = async () => {
     try {
-      // Si es el propio perfil, incluir rifas inactivas también
-      const includeInactive = isOwnProfile ? '?include_inactive=true' : '';
-      const response = await apiClient.get(`/raffle/user/${userId}/${includeInactive}`);
+      // Siempre incluir todas las rifas sin importar el estado
+      const response = await apiClient.get(`/raffle/user/${userId}/?include_inactive=true`);
       console.log('Rifas recibidas del backend:', response.data);
       console.log('Cantidad de rifas:', response.data.length);
       setRaffles(response.data);

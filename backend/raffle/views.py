@@ -170,8 +170,8 @@ class RaffleUserListView(generics.ListAPIView):
             raffle_created_by_id=user_id
         ).select_related('raffle_prize_type', 'raffle_state', 'raffle_created_by')
         
-        # Si no se solicitan inactivas O no es el mismo usuario, filtrar solo activas
-        if not include_inactive or not self._is_same_user(user_id):
+        # Si no se solicitan inactivas, filtrar solo activas
+        if not include_inactive:
             from raffleInfo.models import StateRaffle
             
             # Obtener estados activos
