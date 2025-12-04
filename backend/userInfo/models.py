@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password
-from user.models import User
+from django.conf import settings
 
 # Create your models here.
 class DocumentType(models.Model):
@@ -37,7 +37,7 @@ class PaymentMethod(models.Model):
         verbose_name='Tipo de método de pago'
     )
     user = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         verbose_name='Usuario propietario',
         related_name='payment_methods'

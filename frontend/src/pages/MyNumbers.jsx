@@ -5,7 +5,7 @@ import {apiClient} from '../services/authService';
 
 function MyNumbers() {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const {user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState('purchased');
   const [myTickets, setMyTickets] = useState([]);
   const [stats, setStats] = useState(null);
@@ -25,7 +25,7 @@ function MyNumbers() {
           apiClient.get('/tickets/my-tickets/'),
           apiClient.get('/tickets/stats/')
         ]);
-
+        
         setMyTickets(ticketsResponse.data);
         setStats(statsResponse.data);
       } catch (err) {
@@ -41,7 +41,7 @@ function MyNumbers() {
 
   const getRifaIcon = (raffleName) => {
     if (!raffleName) return '🎁';
-
+    
     const prize = raffleName?.toLowerCase() || '';
     if (prize.includes('iphone') || prize.includes('celular')) return '📱';
     if (prize.includes('playstation') || prize.includes('xbox')) return '🎮';
@@ -61,11 +61,11 @@ function MyNumbers() {
 
   const groupTicketsByRaffle = () => {
     const grouped = {};
-
+    
     myTickets.forEach(ticket => {
       const rafflId = ticket.raffle_id;
       if (!rafflId) return;
-
+      
       if (!grouped[rafflId]) {
         grouped[rafflId] = {
           raffle_id: rafflId,
@@ -74,12 +74,12 @@ function MyNumbers() {
           totalSpent: 0
         };
       }
-
+      
       grouped[rafflId].tickets.push(ticket);
       // Por ahora no podemos calcular el precio total sin los detalles de la rifa
       grouped[rafflId].totalSpent += 0;
     });
-
+    
     return Object.values(grouped);
   };
 
@@ -144,7 +144,7 @@ function MyNumbers() {
             </div>
             <div style={{color: '#666', fontSize: '0.9rem'}}>Números comprados</div>
           </div>
-
+          
           <div style={{textAlign: 'center'}}>
             <div style={{fontSize: '2rem', marginBottom: '0.5rem'}}>🎯</div>
             <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#6A4C93'}}>
@@ -152,7 +152,7 @@ function MyNumbers() {
             </div>
             <div style={{color: '#666', fontSize: '0.9rem'}}>Tickets activos</div>
           </div>
-
+          
           <div style={{textAlign: 'center'}}>
             <div style={{fontSize: '2rem', marginBottom: '0.5rem'}}>🏆</div>
             <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#2ECC71'}}>
@@ -160,7 +160,7 @@ function MyNumbers() {
             </div>
             <div style={{color: '#666', fontSize: '0.9rem'}}>Tickets ganadores</div>
           </div>
-
+          
           <div style={{textAlign: 'center'}}>
             <div style={{fontSize: '2rem', marginBottom: '0.5rem'}}>💰</div>
             <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#F4A261'}}>
@@ -267,7 +267,7 @@ function MyNumbers() {
                           </span>
                         </div>
                       </div>
-
+                      
                       <div style={{
                         background: '#F8F9FA',
                         padding: '1rem',
