@@ -1,0 +1,165 @@
+name: CI/CD Pipeline Completo
+
+on:
+  push:
+    branches: [main, dockerización]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ========================================
+  # JOB 1: TESTS Y VALIDACIÓN
+  # ========================================
+  test:
+    name: Tests y Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      
+      - name: Instalar dependencias
+        run: |
+          cd backend
+          pip install -r requirements.txt
+      
+      - name: Ejecutar tests
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DEBUG: "False"
+          MYSQL_DATABASE: postgres
+          MYSQL_USER: postgres
+          MYSQL_PASSWORD: postgres
+          MYSQL_HOST: localhost
+          MYSQL_PORT: 5432
+        run: |
+          cd backend
+          pytest --quiet --tb=short
+      
+      - name: Pylint
+        run: |
+          cd backend
+          pylint user/ userInfo/ raffle/ raffleInfo/ tickets/ interactions/ location/ permissions/ --fail-under=9.0 || echo "⚠️ Pylint warnings"
+      
+      - name: Bandit (seguridad)
+        run: |
+          cd backend
+          bandit -r user/ userInfo/ raffle/ raffleInfo/ tickets/ interactions/ location/ permissions/ -ll --quiet || echo "⚠️ Bandit warnings"
+
+  # ========================================
+  # JOB 2: BUILD Y PUSH IMÁGENES DOCKER
+  # ========================================
+  build-docker:
+    name: Build Docker Images
+    needs: test  # Solo si los tests pasan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'  # Solo en push, no en PR
+    
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+      
+      - name: Login a GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Metadata para Backend
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+      
+      - name: Build y Push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:buildcache,mode=max
+      
+      - name: Metadata para Frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+      
+      - name: Build y Push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:buildcache,mode=max
+
+  # ========================================
+  # JOB 3: DEPLOY A RENDER (solo en main)
+  # ========================================
+  deploy-render:
+    name: Deploy a Render
+    needs: [test, build-docker]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Trigger Render Deploy (Backend)
+        run: |
+          curl -X POST "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}"
+      
+      - name: Trigger Render Deploy (Frontend)
+        run: |
+          curl -X POST "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}"
+      
+      - name: Notificar éxito
+        run: |
+          echo "✅ Deploy iniciado en Render"
+          echo "Backend: https://rifasplus-backend.onrender.com"
+          echo "Frontend: https://rifasplus-frontend.onrender.com"
+
+  # ========================================
+  # JOB 4: NOTIFICACIONES (Opcional)
+  # ========================================
+  notify:
+    name: Notificar resultado
+    needs: [test, build-docker, deploy-render]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Resultado del pipeline
+        run: |
+          if [ "${{ needs.test.result }}" == "success" ] && [ "${{ needs.deploy-render.result }}" == "success" ]; then
+            echo "🎉 Pipeline completado exitosamente"
+          else
+            echo "❌ Pipeline falló. Revisa los logs."
+            exit 1
+          fi
