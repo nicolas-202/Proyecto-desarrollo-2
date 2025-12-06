@@ -1,6 +1,5 @@
-# Imagen base de Python
-FROM python:3.13-slim
 
+FROM python:3.13-slim
 # Variables de entorno
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -23,7 +22,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar código de la aplicación
 COPY . .
-
 # Crear directorio para archivos estáticos
 RUN mkdir -p /app/staticfiles
 
