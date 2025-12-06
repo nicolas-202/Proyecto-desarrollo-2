@@ -2,7 +2,6 @@
 """
 Script de inicialización de datos base para el Sistema de Rifas
 Ejecuta: python init_database.py
-
 Este script inicializa la base de datos con los datos mínimos necesarios
 para el funcionamiento del sistema de rifas.
 """
