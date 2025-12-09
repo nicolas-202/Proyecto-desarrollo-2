@@ -1,5 +1,5 @@
 Acceso a la aplicación:
-https://rifasplus-frontend.onrender.com/
+https://frontend-rifaplus.onrender.com/
 
 Dirección del Draw.io que contiene la documentación:
 https://drive.google.com/file/d/1jIydWksU_XRTRXGKeYx1Ogy5hUK8vNoH/view?usp=sharing
