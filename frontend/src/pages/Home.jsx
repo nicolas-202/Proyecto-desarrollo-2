@@ -83,6 +83,8 @@ function Home() {
     if (!chatInput.trim() || isSendingMessage) return;
 
     const userMessage = chatInput.trim();
+    const CHATBOT_URL = import.meta.env.VITE_CHATBOT_URL || 'http://localhost:5678/webhook/bf8716c0-40cd-4859-a3bb-482899d973a1/chat';
+    
     setChatInput('');
     setIsSendingMessage(true);
 
@@ -90,7 +92,7 @@ function Home() {
     setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
 
     try {
-      const response = await fetch('http://localhost:5678/webhook/bf8716c0-40cd-4859-a3bb-482899d973a1/chat', {
+      const response = await fetch(CHATBOT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
