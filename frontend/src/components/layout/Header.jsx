@@ -128,7 +128,14 @@ function Header() {
               </div>
             </>
           )}
-
+          {/* Botón Asistente Virtual */}
+          <button
+            className="btn-primary"
+            onClick={() => setIsChatOpen(true)}
+            style={{ marginLeft: '0.5rem' }}
+          >
+            💬 Asistente
+          </button>
           {/* Configuración (solo para administradores) */}
           {isAuthenticated && isAdmin && (
             <div className="nav-item" onClick={() => handleNavigate('/config')}>
@@ -161,15 +168,6 @@ function Header() {
               </button>
             </div>
           )}
-
-          {/* Botón Asistente Virtual */}
-          <button
-            className="btn-primary"
-            onClick={() => setIsChatOpen(true)}
-            style={{ marginLeft: '0.5rem' }}
-          >
-            💬 Asistente
-          </button>
         </div>
       </div>
 
