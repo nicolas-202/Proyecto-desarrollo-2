@@ -244,26 +244,6 @@ function Home() {
           borderRadius: '8px',
           border: '1px solid rgba(255, 255, 255, 0.1)'
         }}>
-          {/* Tipo de Premio */}
-          <select
-            className="form-input"
-            value={prizeTypeFilter}
-            onChange={e => setPrizeTypeFilter(e.target.value)}
-            style={{ 
-              margin: 0, 
-              padding: '0.5rem',
-              fontSize: '0.9rem',
-              flex: '1 1 150px',
-              minWidth: '140px'
-            }}
-          >
-            <option value="all">🏆 Tipo de Premio</option>
-            {prizeTypes.map(type => (
-              <option key={type.id} value={type.id}>
-                {type.prize_type_name}
-              </option>
-            ))}
-          </select>
 
           {/* Precio Mínimo */}
           <input
