@@ -15,6 +15,10 @@ function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [prizeTypeFilter, setPrizeTypeFilter] = useState('all');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
@@ -76,7 +80,16 @@ function Home() {
     const matchesPrizeType =
       prizeTypeFilter === 'all' || rifa.raffle_prize_type?.id === parseInt(prizeTypeFilter);
 
-    return matchesSearch && matchesPrizeType;
+    // Filtro por rango de precio del ticket
+    const matchesMinPrice = minPrice === '' || rifa.raffle_number_price >= parseFloat(minPrice);
+    const matchesMaxPrice = maxPrice === '' || rifa.raffle_number_price <= parseFloat(maxPrice);
+
+    // Filtro por fecha de sorteo
+    const raffleDate = new Date(rifa.raffle_draw_date);
+    const matchesDateFrom = dateFrom === '' || raffleDate >= new Date(dateFrom);
+    const matchesDateTo = dateTo === '' || raffleDate <= new Date(dateTo + 'T23:59:59');
+
+    return matchesSearch && matchesPrizeType && matchesMinPrice && matchesMaxPrice && matchesDateFrom && matchesDateTo;
   });
 
   const sendChatMessage = async () => {
@@ -194,21 +207,151 @@ function Home() {
       )}
 
       {/* Filtros */}
-      <div className="filters">
-        <input
-          type="text"
-          className="search-input"
-          placeholder="Busca rifas por nombre, descripción o tipo de premio..."
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-        />
-        <button
-          className="btn-primary"
-          style={{ padding: '0.75rem 1.5rem', fontSize: '1rem' }}
-          onClick={() => setIsChatOpen(true)}
-        >
-          💬 Asistente Virtual
-        </button>
+      <div className="filters" style={{ marginBottom: '1.5rem' }}>
+        {/* Primera línea: Búsqueda y Asistente */}
+        <div style={{ 
+          display: 'flex',
+          gap: '0.75rem',
+          alignItems: 'center',
+          marginBottom: '0.75rem',
+          flexWrap: 'wrap'
+        }}>
+          {/* Búsqueda */}
+          <input
+            type="text"
+            className="search-input"
+            placeholder="🔍 Buscar rifas..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            style={{ 
+              flex: '1 1 300px',
+              minWidth: 0,
+              maxWidth: '100%',
+              padding: '0.875rem 1.25rem',
+              fontSize: '1rem'
+            }}
+          />
+        </div>
+
+        {/* Segunda línea: Filtros avanzados */}
+        <div style={{ 
+          display: 'flex',
+          gap: '0.5rem',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          padding: '0.75rem',
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          borderRadius: '8px',
+          border: '1px solid rgba(255, 255, 255, 0.1)'
+        }}>
+          {/* Tipo de Premio */}
+          <select
+            className="form-input"
+            value={prizeTypeFilter}
+            onChange={e => setPrizeTypeFilter(e.target.value)}
+            style={{ 
+              margin: 0, 
+              padding: '0.5rem',
+              fontSize: '0.9rem',
+              flex: '1 1 150px',
+              minWidth: '140px'
+            }}
+          >
+            <option value="all">🏆 Tipo de Premio</option>
+            {prizeTypes.map(type => (
+              <option key={type.id} value={type.id}>
+                {type.prize_type_name}
+              </option>
+            ))}
+          </select>
+
+          {/* Precio Mínimo */}
+          <input
+            type="number"
+            className="form-input"
+            placeholder="$ Mín"
+            value={minPrice}
+            onChange={e => setMinPrice(e.target.value)}
+            min="0"
+            style={{ 
+              margin: 0, 
+              padding: '0.5rem',
+              fontSize: '0.9rem',
+              flex: '0 1 100px',
+              minWidth: '90px'
+            }}
+          />
+
+          {/* Precio Máximo */}
+          <input
+            type="number"
+            className="form-input"
+            placeholder="$ Máx"
+            value={maxPrice}
+            onChange={e => setMaxPrice(e.target.value)}
+            min="0"
+            style={{ 
+              margin: 0, 
+              padding: '0.5rem',
+              fontSize: '0.9rem',
+              flex: '0 1 100px',
+              minWidth: '90px'
+            }}
+          />
+
+          {/* Fecha Desde */}
+          <input
+            type="date"
+            className="form-input"
+            value={dateFrom}
+            onChange={e => setDateFrom(e.target.value)}
+            title="Sorteo desde"
+            style={{ 
+              margin: 0, 
+              padding: '0.5rem',
+              fontSize: '0.9rem',
+              flex: '0 1 140px',
+              minWidth: '130px'
+            }}
+          />
+
+          {/* Fecha Hasta */}
+          <input
+            type="date"
+            className="form-input"
+            value={dateTo}
+            onChange={e => setDateTo(e.target.value)}
+            title="Sorteo hasta"
+            style={{ 
+              margin: 0, 
+              padding: '0.5rem',
+              fontSize: '0.9rem',
+              flex: '0 1 140px',
+              minWidth: '130px'
+            }}
+          />
+
+          {/* Botón Limpiar */}
+          <button
+            className="btn-secondary"
+            onClick={() => {
+              setSearchTerm('');
+              setPrizeTypeFilter('all');
+              setMinPrice('');
+              setMaxPrice('');
+              setDateFrom('');
+              setDateTo('');
+            }}
+            style={{ 
+              padding: '0.5rem 1rem',
+              fontSize: '0.85rem',
+              whiteSpace: 'nowrap',
+              flex: '0 0 auto'
+            }}
+          >
+            🔄 Limpiar
+          </button>
+        </div>
       </div>
 
       {/* Grid de rifas */}
@@ -312,176 +455,7 @@ function Home() {
         )}
       </div>
 
-      {/* Modal de Chat */}
-      {isChatOpen && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 1000,
-          }}
-          onClick={() => setIsChatOpen(false)}
-        >
-          <div 
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              width: '90%',
-              maxWidth: '500px',
-              maxHeight: '600px',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header del chat */}
-            <div style={{
-              padding: '1rem 1.5rem',
-              backgroundColor: '#6A4C93',
-              color: 'white',
-              borderTopLeftRadius: '12px',
-              borderTopRightRadius: '12px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem' }}>💬 Asistente Virtual</h3>
-              <button
-                onClick={() => setIsChatOpen(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'white',
-                  fontSize: '1.5rem',
-                  cursor: 'pointer',
-                  padding: '0',
-                  lineHeight: 1,
-                }}
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Mensajes del chat */}
-            <div style={{
-              flex: 1,
-              overflowY: 'auto',
-              padding: '1rem',
-              backgroundColor: '#f9f9f9',
-            }}>
-              {chatMessages.length === 0 ? (
-                <div style={{ 
-                  textAlign: 'center', 
-                  color: '#666', 
-                  marginTop: '2rem',
-                  fontSize: '0.95rem',
-                }}>
-                  👋 ¡Hola! Soy tu asistente virtual.<br/>
-                  ¿En qué puedo ayudarte hoy?
-                </div>
-              ) : (
-                chatMessages.map((msg, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      marginBottom: '1rem',
-                      display: 'flex',
-                      justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                    }}
-                  >
-                    <div
-                      style={{
-                        maxWidth: '70%',
-                        padding: '0.75rem 1rem',
-                        borderRadius: '12px',
-                        backgroundColor: msg.role === 'user' ? '#6A4C93' : '#e9ecef',
-                        color: msg.role === 'user' ? 'white' : '#333',
-                        fontSize: '0.95rem',
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {msg.role === 'user' ? (
-                        msg.content
-                      ) : (
-                        <ReactMarkdown
-                          components={{
-                            strong: ({children}) => <strong style={{fontWeight: 'bold'}}>{children}</strong>,
-                            ul: ({children}) => <ul style={{margin: '0.5rem 0', paddingLeft: '1.5rem'}}>{children}</ul>,
-                            ol: ({children}) => <ol style={{margin: '0.5rem 0', paddingLeft: '1.5rem'}}>{children}</ol>,
-                            li: ({children}) => <li style={{marginBottom: '0.25rem'}}>{children}</li>,
-                            p: ({children}) => <p style={{margin: '0.5rem 0'}}>{children}</p>,
-                          }}
-                        >
-                          {msg.content}
-                        </ReactMarkdown>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-              {isSendingMessage && (
-                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                  <div
-                    style={{
-                      padding: '0.75rem 1rem',
-                      borderRadius: '12px',
-                      backgroundColor: '#e9ecef',
-                      color: '#666',
-                      fontSize: '0.95rem',
-                    }}
-                  >
-                    Escribiendo...
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Input del chat */}
-            <div style={{
-              padding: '1rem',
-              borderTop: '1px solid #e0e0e0',
-              backgroundColor: 'white',
-              borderBottomLeftRadius: '12px',
-              borderBottomRightRadius: '12px',
-            }}>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Escribe tu mensaje..."
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  onKeyPress={e => e.key === 'Enter' && sendChatMessage()}
-                  disabled={isSendingMessage}
-                  style={{
-                    flex: 1,
-                    margin: 0,
-                  }}
-                />
-                <button
-                  className="btn-primary"
-                  onClick={sendChatMessage}
-                  disabled={!chatInput.trim() || isSendingMessage}
-                  style={{
-                    padding: '0.75rem 1.25rem',
-                    minWidth: 'auto',
-                  }}
-                >
-                  {isSendingMessage ? '⏳' : '📤'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 }

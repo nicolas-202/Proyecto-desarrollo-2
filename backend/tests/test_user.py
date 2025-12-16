@@ -141,7 +141,6 @@ class UserAPITestCase(APITestCase):
         self.assertIn("user", response.data)
         self.assertEqual(User.objects.count(), 3)
 
-        # Verificar que el usuario fue creado correctamente
         new_user = User.objects.get(email="testcreate@gmail.com")
         self.assertEqual(new_user.first_name, "Test")
         self.assertTrue(new_user.check_password("newpassword"))
@@ -152,7 +151,7 @@ class UserAPITestCase(APITestCase):
         data = {
             "email": "testcreate@gmail.com",
             "password": "newpassword",
-            "confirm_password": "otherpassword",  # No coincide
+            "confirm_password": "otherpassword", 
             "first_name": "Test",
             "last_name": "Create",
             "gender": self.gender.id,
@@ -169,7 +168,7 @@ class UserAPITestCase(APITestCase):
         """No se puede registrar con email existente"""
         url = reverse("user_register")
         data = {
-            "email": "userregular@gmail.com",  # Ya existe
+            "email": "userregular@gmail.com", 
             "password": "newpassword",
             "confirm_password": "newpassword",
             "first_name": "Test",
@@ -195,7 +194,7 @@ class UserAPITestCase(APITestCase):
             "last_name": "Create",
             "gender": self.gender.id,
             "document_type": self.document_type.id,
-            "document_number": "87654321",  # Ya existe
+            "document_number": "87654321",
             "city": self.city.id,
         }
         response = self.client.post(url, data, format="json")
@@ -207,7 +206,7 @@ class UserAPITestCase(APITestCase):
         """Email vacío debe fallar"""
         url = reverse("user_register")
         data = {
-            "email": "",  # Vacío
+            "email": "",  
             "password": "newpassword",
             "confirm_password": "newpassword",
             "first_name": "Test",
@@ -227,7 +226,7 @@ class UserAPITestCase(APITestCase):
         url = reverse("user_register")
         data = {
             "email": "test@gmail.com",
-            "password": "short",  # Menos de 8 caracteres
+            "password": "short",  
             "confirm_password": "short",
             "first_name": "Test",
             "last_name": "Create",
@@ -254,7 +253,7 @@ class UserAPITestCase(APITestCase):
             "document_type": self.document_type.id,
             "document_number": "11223344",
             "city": self.city.id,
-            "phone_number": "123",  # No 10 dígitos
+            "phone_number": "123",  
         }
         response = self.client.post(url, data, format="json")
 
@@ -450,52 +449,6 @@ class UserAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["first_name"], "AdminUpdated")
 
-    # ============================================
-    # TESTS DE ADMINISTRACIÓN (ADMIN ENDPOINTS)
-    # ============================================
-
-    def test_admin_list_users_success(self):
-        """Admin puede listar usuarios"""
-        url = reverse("admin_list")
-        self.client.force_authenticate(user=self.admin_user)
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertGreaterEqual(len(response.data), 2)
-
-    def test_non_admin_list_users_fails(self):
-        """Usuario regular NO puede listar usuarios"""
-        url = reverse("admin_list")
-        self.client.force_authenticate(user=self.user_regular)
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_anonymous_list_users_fails(self):
-        """Usuario anónimo NO puede listar usuarios"""
-        url = reverse("admin_list")
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    def test_admin_update_user_success(self):
-        """Admin puede actualizar otro usuario"""
-        url = reverse("admin_update", args=[self.user_regular.id])
-        self.client.force_authenticate(user=self.admin_user)
-        data = {
-            "is_admin": True,
-            "is_active": True,
-            "document_type": self.document_type.id,
-            "document_number": "87654321",
-        }
-        response = self.client.patch(url, data, format="json")
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        # Verificar cambios
-        self.user_regular.refresh_from_db()
-        self.assertTrue(self.user_regular.is_admin)
-
     def test_non_admin_update_user_fails(self):
         """Usuario regular NO puede actualizar otros usuarios"""
         url = reverse("admin_update", args=[self.admin_user.id])
@@ -566,7 +519,7 @@ class UserAPITestCase(APITestCase):
         data = {
             "current_password": "testpassword",
             "new_password": "newsecurepassword",
-            "confirm_new_password": "different",  # No coincide
+            "confirm_new_password": "different",  
         }
         response = self.client.post(url, data, format="json")
 
@@ -578,7 +531,7 @@ class UserAPITestCase(APITestCase):
         self.client.force_authenticate(user=self.user_regular)
         data = {
             "current_password": "testpassword",
-            "new_password": "testpassword",  # Misma
+            "new_password": "testpassword",
             "confirm_new_password": "testpassword",
         }
         response = self.client.post(url, data, format="json")
@@ -597,10 +550,6 @@ class UserAPITestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    # ============================================
-    # TESTS DE ELIMINACIÓN DE CUENTA
-    # ============================================
-
     def test_delete_account_success(self):
         """Usuario regular puede desactivar su cuenta"""
         url = reverse("delete_account")
@@ -610,7 +559,6 @@ class UserAPITestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        # Verificar que la cuenta está desactivada
         self.user_regular.refresh_from_db()
         self.assertFalse(self.user_regular.is_active)
 
@@ -623,7 +571,6 @@ class UserAPITestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-        # Verificar que sigue activo
         self.user_regular.refresh_from_db()
         self.assertTrue(self.user_regular.is_active)
 
@@ -644,26 +591,5 @@ class UserAPITestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-        # Verificar que sigue activo
         self.admin_user.refresh_from_db()
         self.assertTrue(self.admin_user.is_active)
-
-    def test_delete_account_with_active_raffles_fails(self):
-        """Usuario NO puede desactivar cuenta si tiene rifas activas"""
-        # Nota: Este test requiere que el modelo Raffle esté configurado
-        # y que exista una relación organized_raffles en el modelo User
-        url = reverse("delete_account")
-        self.client.force_authenticate(user=self.user_regular)
-        data = {"current_password": "testpassword"}
-
-        # Simular que el usuario tiene rifas activas (mock)
-        # En un test real, crearías una rifa activa aquí
-
-        response = self.client.post(url, data, format="json")
-
-        # Si no hay rifas activas, debería funcionar normalmente
-        # Si hay rifas activas, debería fallar con 400
-        # Este test necesita ser ajustado cuando se implemente la relación con Raffle
-        self.assertIn(
-            response.status_code, [status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST]
-        )

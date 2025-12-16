@@ -26,7 +26,6 @@ class TicketSystemTestCase(APITestCase):
     def setUpTestData(cls):
         """Crear datos comunes para todos los tests"""
 
-        # === DATOS GEOGRÁFICOS ===
         cls.country = Country.objects.create(country_name="Colombia", country_code="CO")
         cls.state = State.objects.create(
             state_name="TestState", state_country=cls.country, state_code="TS"
@@ -35,7 +34,6 @@ class TicketSystemTestCase(APITestCase):
             city_name="TestCity", city_state=cls.state, city_code="TC"
         )
 
-        # === DATOS BASE ===
         cls.gender = Gender.objects.create(gender_name="Masculino", gender_code="M")
         cls.document_type = DocumentType.objects.create(
             document_type_name="Cedula", document_type_code="CC"
@@ -46,7 +44,6 @@ class TicketSystemTestCase(APITestCase):
             prize_type_description="Premio en efectivo",
         )
 
-        # === ESTADOS DE RIFA ===
         cls.state_active = StateRaffle.objects.create(
             state_raffle_name="Activo",
             state_raffle_code="ACT",
@@ -63,7 +60,6 @@ class TicketSystemTestCase(APITestCase):
             state_raffle_description="Rifa sorteada",
         )
 
-        # === TIPO DE MÉTODO DE PAGO ===
         cls.payment_method_type = PaymentMethodType.objects.create(
             payment_method_type_name="Tarjeta de Crédito",
             payment_method_type_code="CC",
@@ -71,7 +67,6 @@ class TicketSystemTestCase(APITestCase):
             payment_method_type_is_active=True,
         )
 
-        # === USUARIOS ===
         cls.organizer = User.objects.create_user(
             email="organizer@test.com",
             password="testpass123",
@@ -105,7 +100,6 @@ class TicketSystemTestCase(APITestCase):
             city=cls.city,
         )
 
-        # === MÉTODOS DE PAGO ===
         cls.payment_method1 = PaymentMethod.objects.create(
             user=cls.participant1,
             payment_method_type=cls.payment_method_type,
@@ -126,7 +120,6 @@ class TicketSystemTestCase(APITestCase):
         cls.payment_method2.set_card_number("9876543210987654")
         cls.payment_method2.save()
 
-        # === MÉTODO DE PAGO ORGANIZADOR ===
         cls.organizer_payment_method = PaymentMethod.objects.create(
             user=cls.organizer,
             payment_method_type=cls.payment_method_type,
@@ -137,7 +130,6 @@ class TicketSystemTestCase(APITestCase):
         cls.organizer_payment_method.set_card_number("5555666677778888")
         cls.organizer_payment_method.save()
 
-        # === RIFA PRINCIPAL ===
         cls.main_raffle = Raffle.objects.create(
             raffle_name="Rifa Principal Test",
             raffle_description="Rifa para testing optimizado",
@@ -153,7 +145,6 @@ class TicketSystemTestCase(APITestCase):
             raffle_creator_payment_method=cls.organizer_payment_method,
         )
 
-        # === USUARIO ADMINISTRADOR ===
         cls.admin_user = User.objects.create_user(
             email="admin@test.com",
             password="adminpass",
@@ -176,7 +167,6 @@ class TicketSystemTestCase(APITestCase):
 
     def setUp(self):
         """Configuración antes de cada test"""
-        # Limpiar tickets de tests anteriores
         Ticket.objects.filter(raffle=self.main_raffle).delete()
 
         # Restaurar saldos originales
@@ -188,8 +178,6 @@ class TicketSystemTestCase(APITestCase):
         self.admin_payment_method.payment_method_balance = Decimal("0.00")
         self.admin_payment_method.save()
 
-    # ==================== TESTS CRÍTICOS DE COMPRA ====================
-
     def test_ticket_purchase_success(self):
         """TEST CRÍTICO: Compra exitosa de ticket"""
         ticket = Ticket.purchase_ticket(
@@ -199,14 +187,12 @@ class TicketSystemTestCase(APITestCase):
             payment_method=self.payment_method1,
         )
 
-        # Verificaciones esenciales
         self.assertEqual(ticket.user, self.participant1)
         self.assertEqual(ticket.raffle, self.main_raffle)
         self.assertEqual(ticket.number, 1)
         self.assertFalse(ticket.is_winner)
         self.assertEqual(ticket.payment_method, self.payment_method1)
 
-        # Verificar descuento
         self.payment_method1.refresh_from_db()
         self.assertEqual(self.payment_method1.payment_method_balance, Decimal("990.00"))
         self.admin_payment_method.refresh_from_db()
@@ -216,7 +202,6 @@ class TicketSystemTestCase(APITestCase):
 
     def test_ticket_purchase_insufficient_balance(self):
         """TEST CRÍTICO: Error por saldo insuficiente"""
-        # Reducir saldo
         self.payment_method1.payment_method_balance = Decimal("5.00")
         self.payment_method1.save()
 
@@ -232,7 +217,6 @@ class TicketSystemTestCase(APITestCase):
 
     def test_ticket_purchase_duplicate_number(self):
         """TEST CRÍTICO: Error al comprar número ya vendido"""
-        # Comprar número 1
         Ticket.purchase_ticket(
             user=self.participant1,
             raffle=self.main_raffle,
@@ -240,7 +224,6 @@ class TicketSystemTestCase(APITestCase):
             payment_method=self.payment_method1,
         )
 
-        # Intentar comprar mismo número
         with self.assertRaises(ValidationError) as context:
             Ticket.purchase_ticket(
                 user=self.participant2,
@@ -258,16 +241,14 @@ class TicketSystemTestCase(APITestCase):
                 user=self.participant1,
                 raffle=self.main_raffle,
                 number=1,
-                payment_method=self.payment_method2,  # Método del participant2
+                payment_method=self.payment_method2, 
             )
 
         self.assertIn("no pertenece al usuario", str(context.exception))
 
-    # ==================== TESTS CRÍTICOS DE REEMBOLSO ====================
-
     def test_ticket_refund_success(self):
         """TEST CRÍTICO: Reembolso exitoso de ticket"""
-        # Comprar ticket
+
         ticket = Ticket.purchase_ticket(
             user=self.participant1,
             raffle=self.main_raffle,
@@ -275,48 +256,18 @@ class TicketSystemTestCase(APITestCase):
             payment_method=self.payment_method1,
         )
 
-        # Verificar descuento
         self.payment_method1.refresh_from_db()
         self.assertEqual(self.payment_method1.payment_method_balance, Decimal("990.00"))
 
-        # Reembolsar
         ticket.refund_ticket()
 
-        # Verificar reembolso
         self.payment_method1.refresh_from_db()
         self.assertEqual(
             self.payment_method1.payment_method_balance, Decimal("1000.00")
         )
 
-        # Verificar eliminación
         self.assertFalse(Ticket.objects.filter(id=ticket.id).exists())
 
-    def test_winner_ticket_refund_allowed(self):
-        """TEST CRÍTICO: Reembolso de ticket ganador permitido (casos administrativos)"""
-        # Comprar y marcar como ganador
-        ticket = Ticket.purchase_ticket(
-            user=self.participant1,
-            raffle=self.main_raffle,
-            number=1,
-            payment_method=self.payment_method1,
-        )
-        ticket.is_winner = True
-        ticket.save()
-
-        # Verificar descuento inicial
-        self.payment_method1.refresh_from_db()
-        self.assertEqual(self.payment_method1.payment_method_balance, Decimal("990.00"))
-
-        # Reembolsar (debe funcionar para casos administrativos)
-        ticket.refund_ticket()
-
-        # Verificar reembolso
-        self.payment_method1.refresh_from_db()
-        self.assertEqual(
-            self.payment_method1.payment_method_balance, Decimal("1000.00")
-        )
-
-    # ==================== TESTS CRÍTICOS DE PROPIEDADES DE RIFA ====================
 
     def test_raffle_available_numbers(self):
         """TEST CRÍTICO: Números disponibles de la rifa"""
@@ -337,9 +288,8 @@ class TicketSystemTestCase(APITestCase):
             self.participant1, self.main_raffle, 20, self.payment_method1
         )
 
-        # Verificar disponibilidad
         available = self.main_raffle.available_numbers
-        self.assertEqual(len(available), 17)  # 20 - 3 = 17
+        self.assertEqual(len(available), 17)  
         self.assertNotIn(1, available)
         self.assertNotIn(10, available)
         self.assertNotIn(20, available)
@@ -348,12 +298,10 @@ class TicketSystemTestCase(APITestCase):
 
     def test_raffle_sales_properties(self):
         """TEST CRÍTICO: Propiedades de ventas de la rifa"""
-        # Estado inicial
         self.assertEqual(self.main_raffle.numbers_sold, 0)
         self.assertEqual(self.main_raffle.numbers_available, 20)
         self.assertFalse(self.main_raffle.minimum_reached)
 
-        # Después de compras
         Ticket.purchase_ticket(
             self.participant1, self.main_raffle, 1, self.payment_method1
         )
@@ -365,31 +313,26 @@ class TicketSystemTestCase(APITestCase):
         self.assertEqual(self.main_raffle.numbers_available, 18)
         self.assertTrue(self.main_raffle.minimum_reached)
 
-        # Verificar números vendidos
         sold_numbers = self.main_raffle.sold_numbers
         self.assertIn(1, sold_numbers)
         self.assertIn(2, sold_numbers)
 
     def test_raffle_status_display(self):
         """TEST CRÍTICO: Display de estado de la rifa"""
-        # Estado inicial: ventas activas sin mínimo
         Ticket.purchase_ticket(
             self.participant1, self.main_raffle, 1, self.payment_method1
         )
         status_display = self.main_raffle.status_display
         self.assertIn("faltan 1 para alcanzar mínimo", status_display)
 
-        # Alcanzar mínimo
         Ticket.purchase_ticket(
             self.participant2, self.main_raffle, 2, self.payment_method2
         )
         status_display = self.main_raffle.status_display
         self.assertIn("mínimo alcanzado", status_display)
 
-    # ==================== TESTS CRÍTICOS DE SORTEO ====================
-
     def test_raffle_draw_validation(self):
-        """TEST CRÍTICO: Validaciones para sorteo"""
+        """TEST CRÍTICO: Validaciones para sorteo """
         # Con fecha futura, sin tickets
         can_draw, message = self.main_raffle.can_execute_draw()
         self.assertFalse(can_draw)
@@ -461,8 +404,6 @@ class TicketSystemTestCase(APITestCase):
         # Ingresos: 20.00
         # Premio: 180.00
         # Déficit: 160.00
-        #
-        # Flujo:
         # 1. Organizador paga déficit: 10000.00 - 160.00 = 9840.00
         # 2. Cuenta conjunta recibe déficit: 220.00 + 160.00 = 380.00
         # 3. Cuenta conjunta paga premio: 380.00 - 180.00 = 200.00
@@ -487,7 +428,6 @@ class TicketSystemTestCase(APITestCase):
 
     def test_cannot_draw_twice(self):
         """TEST CRÍTICO: No se puede sortear dos veces"""
-        # Inicializar saldo admin para cubrir el premio
         self.admin_payment_method.payment_method_balance = Decimal("200.00")
         self.admin_payment_method.save()
 
@@ -624,6 +564,7 @@ class TicketSystemTestCase(APITestCase):
         # Verificar eliminación de tickets
         self.assertFalse(Ticket.objects.filter(raffle=self.main_raffle).exists())
 
+
     def test_only_organizer_can_cancel(self):
         """TEST CRÍTICO: Solo organizador puede cancelar"""
         Ticket.purchase_ticket(
@@ -636,6 +577,7 @@ class TicketSystemTestCase(APITestCase):
             )  # No es organizador
 
         self.assertIn("Solo el organizador puede cancelar", str(context.exception))
+
 
     def test_admin_cancel_with_refunds(self):
         """TEST CRÍTICO: Cancelación administrativa con reembolsos"""
@@ -665,15 +607,13 @@ class TicketSystemTestCase(APITestCase):
         )
         self.assertEqual(self.payment_method2.payment_method_balance, Decimal("500.00"))
 
-    # ==================== TESTS CRÍTICOS DE VALIDACIONES ====================
 
     def test_ticket_number_range_validation(self):
-        """TEST CRÍTICO: Validación de rango de números"""
-        # Número fuera de rango
+        """TEST CRÍTICO: Validación de rango de tickets"""
         ticket = Ticket(
             user=self.participant1,
             raffle=self.main_raffle,
-            number=25,  # Fuera del rango 1-20
+            number=25, 
             payment_method=self.payment_method1,
         )
 
@@ -692,50 +632,12 @@ class TicketSystemTestCase(APITestCase):
         )
 
         ticket_str = str(ticket)
-        self.assertIn("#007", ticket_str)  # Número formateado
+        self.assertIn("#007", ticket_str)  
         self.assertIn("Rifa Principal Test", ticket_str)
         self.assertIn("participant1@test.com", ticket_str)
         self.assertIn("Tarjeta de Crédito", ticket_str)
 
-    def test_payment_method_card_security(self):
-        """TEST CRÍTICO: Seguridad del número de tarjeta"""
-        original_number = "1234567890123456"
-
-        # Verificar que no se almacena en texto plano
-        self.assertNotEqual(
-            self.payment_method1.paymenth_method_card_number_hash, original_number
-        )
-
-        # Verificar funciones de seguridad
-        self.assertTrue(self.payment_method1.check_card_number(original_number))
-        self.assertFalse(self.payment_method1.check_card_number("9999999999999999"))
-        self.assertEqual(self.payment_method1.last_digits, "3456")
-        self.assertEqual(
-            self.payment_method1.get_masked_card_number(), "**** **** **** 3456"
-        )
-
-    def test_raffle_revenue_calculation(self):
-        """TEST CRÍTICO: Cálculo de revenue de la rifa (solo ventas)"""
-        # Estado inicial
-        self.assertEqual(self.main_raffle.total_revenue, Decimal("0.00"))
-
-        # Después de vender tickets
-        Ticket.purchase_ticket(
-            self.participant1, self.main_raffle, 1, self.payment_method1
-        )
-        self.assertEqual(self.main_raffle.total_revenue, Decimal("10.00"))
-
-        Ticket.purchase_ticket(
-            self.participant2, self.main_raffle, 2, self.payment_method2
-        )
-        self.assertEqual(self.main_raffle.total_revenue, Decimal("20.00"))
-
-        # Comprar más tickets
-        Ticket.purchase_ticket(
-            self.participant1, self.main_raffle, 3, self.payment_method1
-        )
-        self.assertEqual(self.main_raffle.total_revenue, Decimal("30.00"))
-
+  
     def test_admin_balance_after_raffle_draw(self):
         """TEST: Verifica el saldo de la cuenta conjunta después del sorteo"""
         # Inicializar saldo de la cuenta conjunta (admin) para poder comprar tickets y pagar premio

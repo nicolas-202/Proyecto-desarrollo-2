@@ -30,10 +30,8 @@ class RefundFunctionalityTestCase(TestCase):
         """Configuración inicial para tests de reembolsos"""
         from datetime import date
 
-        # Generar identificador único corto para esta ejecución (solo 2 caracteres)
         self.test_id = str(uuid.uuid4())[:2]
 
-        # Ubicación - códigos de máximo 4 caracteres
         self.country = Country.objects.create(
             country_name=f"Colombia-{self.test_id}", country_code=f"C{self.test_id}"
         )
@@ -48,7 +46,6 @@ class RefundFunctionalityTestCase(TestCase):
             city_state=self.state,
         )
 
-        # Datos de usuario - códigos de máximo 4 caracteres
         self.gender = Gender.objects.create(
             gender_name=f"Masculino-{self.test_id}", gender_code=f"M{self.test_id}"
         )
@@ -57,7 +54,6 @@ class RefundFunctionalityTestCase(TestCase):
             document_type_code=f"C{self.test_id}",
         )
 
-        # Datos para rifas - códigos de máximo 4 caracteres
         self.prize_type = PrizeType.objects.create(
             prize_type_name=f"Dinero-{self.test_id}",
             prize_type_code=f"D{self.test_id}",
@@ -71,13 +67,11 @@ class RefundFunctionalityTestCase(TestCase):
             state_raffle_code=f"CA{self.test_id}",
         )
 
-        # TIPO DE MÉTODO DE PAGO - código de máximo 4 caracteres
         self.payment_method_type = PaymentMethodType.objects.create(
             payment_method_type_name=f"Efectivo-{self.test_id}",
             payment_method_type_code=f"E{self.test_id}",
         )
 
-        # Usuarios - usar UUIDs completamente únicos
         self.user = User.objects.create_user(
             email=f"organizer-{self.test_id}@test.com",
             password="pass123",
@@ -111,7 +105,6 @@ class RefundFunctionalityTestCase(TestCase):
             city=self.city,
         )
 
-        # Métodos de pago para participantes
         self.payment_method = PaymentMethod.objects.create(
             user=self.participant1,
             payment_method_type=self.payment_method_type,
@@ -130,8 +123,6 @@ class RefundFunctionalityTestCase(TestCase):
             last_digits="5678",
             payment_method_balance=Decimal("1000.00"),
         )
-
-        # Método de pago para el organizador
         self.organizer_payment_method = PaymentMethod.objects.create(
             user=self.user,
             payment_method_type=self.payment_method_type,
@@ -142,7 +133,6 @@ class RefundFunctionalityTestCase(TestCase):
             payment_method_balance=Decimal("10000.00"),
         )
 
-        # Crear usuario admin y método de pago admin
         self.admin_user = User.objects.create_user(
             email=f"admin-{self.test_id}@test.com",
             password="adminpass",
@@ -198,15 +188,13 @@ class RefundFunctionalityTestCase(TestCase):
             self.admin_payment_method.payment_method_balance, expected_admin_balance
         )
 
-        # Simular vencimiento y disparar el signal
         past_draw_date = now - timedelta(hours=2)
         past_start_date = past_draw_date - timedelta(hours=1)
         raffle.raffle_start_date = past_start_date
         raffle.raffle_draw_date = past_draw_date
         raffle._allow_past_date = True
-        raffle.save()  # Aquí el signal debe actuar
+        raffle.save()
 
-        # Verificar que el estado fue cambiado por el signal
         raffle.refresh_from_db()
         self.assertEqual(raffle.raffle_state, self.cancelled_state)
         self.assertEqual(raffle.sold_tickets.count(), 0)

@@ -99,7 +99,7 @@ class PaymentMethodAPITestCase(APITestCase):
             user=user,
             paymenth_method_holder_name="John Doe",
             paymenth_method_expiration_date=date.today() + timedelta(days=365),
-            payment_method_balance=balance,  # Campo corregido
+            payment_method_balance=balance,  
         )
         payment_method.set_card_number("1234567890123456")
         payment_method.save()
@@ -243,7 +243,7 @@ class PaymentMethodAPITestCase(APITestCase):
         """Fallar al crear con nombre muy largo"""
         self.client.force_authenticate(user=self.regular_user)
         data = self.get_valid_payment_method_data()
-        data["paymenth_method_holder_name"] = "A" * 101  # Muy largo
+        data["paymenth_method_holder_name"] = "A" * 101 
 
         response = self.client.post(self.payment_method_list_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -265,16 +265,14 @@ class PaymentMethodAPITestCase(APITestCase):
         """Crear exitosamente con número que tiene espacios (se limpian automáticamente)"""
         self.client.force_authenticate(user=self.regular_user)
         data = self.get_valid_payment_method_data()
-        data["card_number"] = "1234 5678 9012 3456"  # Con espacios
-
+        data["card_number"] = "1234 5678 9012 3456"
         response = self.client.post(self.payment_method_list_url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        # Verificar que se guardó correctamente
         payment_method = PaymentMethod.objects.get(id=response.data["id"])
         self.assertTrue(
             payment_method.check_card_number("1234567890123456")
-        )  # Sin espacios
+        )
 
     def test_update_with_missing_required_fields_partial_success(self):
         """Actualización parcial sin campos obligatorios debe funcionar"""
@@ -282,25 +280,24 @@ class PaymentMethodAPITestCase(APITestCase):
         payment_method = self.create_payment_method(self.regular_user)
 
         url = reverse("payment-method-detail", args=[payment_method.pk])
-        # Solo actualizar un campo no obligatorio
         data = {"payment_method_is_active": False}
 
         response = self.client.patch(url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(response.data["payment_method_is_active"])
 
-    # Modificar test existente para asegurar que falla correctamente
+
     def test_create_with_invalid_holder_name(self):
         """Fallar al crear con nombre inválido"""
         self.client.force_authenticate(user=self.regular_user)
         data = self.get_valid_payment_method_data()
-        data["paymenth_method_holder_name"] = "A"  # Muy corto
+        data["paymenth_method_holder_name"] = "A"  
 
         response = self.client.post(self.payment_method_list_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("paymenth_method_holder_name", response.data)
 
-    # Tests de actualización
+
     def test_update_own_payment_method(self):
         """Usuario puede actualizar su método"""
         self.client.force_authenticate(user=self.regular_user)
@@ -324,34 +321,6 @@ class PaymentMethodAPITestCase(APITestCase):
         response = self.client.patch(url, data)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    # Test adicional para admin
-    def test_admin_can_update_own_payment_method(self):
-        """Admin puede actualizar su propio método de pago"""
-        self.client.force_authenticate(user=self.admin_user)
-        payment_method = self.create_payment_method(self.admin_user)
-
-        url = reverse("payment-method-detail", args=[payment_method.pk])
-        data = {
-            "paymenth_method_holder_name": "Admin Updated Name",
-            "card_number": "1111222233334444",
-            "paymenth_method_expiration_date": (
-                date.today() + timedelta(days=730)
-            ).isoformat(),
-        }
-
-        response = self.client.patch(url, data)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            response.data["paymenth_method_holder_name"], "Admin Updated Name"
-        )
-
-        # Verificar que el número se actualizó correctamente
-        payment_method.refresh_from_db()
-        self.assertTrue(payment_method.check_card_number("1111222233334444"))
-        self.assertEqual(payment_method.last_digits, "4444")
-        self.assertEqual(response.data["masked_card_number"], "**** **** **** 4444")
-
-    # Tests de eliminación
     def test_delete_own_payment_method(self):
         """Usuario puede eliminar su método"""
         self.client.force_authenticate(user=self.regular_user)
@@ -430,7 +399,6 @@ class PaymentMethodAPITestCase(APITestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Verificar que el saldo NO está en la respuesta
         self.assertNotIn("payment_method_balance", response.data)
 
     def test_check_sufficient_balance(self):

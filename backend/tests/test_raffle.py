@@ -19,7 +19,7 @@ from userInfo.models import DocumentType, Gender, PaymentMethod, PaymentMethodTy
 
 
 class RaffleAPITestCase(APITestCase):
-    """Tests minimalistas para endpoints de rifas"""
+    """Tests para modelo de rifas"""
 
     @classmethod
     def setUpTestData(cls):
@@ -126,7 +126,6 @@ class RaffleAPITestCase(APITestCase):
 
     def test_list_raffles_public_access(self):
         """Test listar rifas - acceso público"""
-        # Crear rifa activa
         raffle = Raffle.objects.create(
             raffle_name="Rifa Pública",
             raffle_draw_date=self.future_date,
@@ -196,7 +195,7 @@ class RaffleAPITestCase(APITestCase):
         self.assertEqual(raffle.raffle_name, "Rifa Actualizada")
 
     def test_update_raffle_by_non_creator_fails(self):
-        """Test actualizar rifa por usuario que no es el creador falla"""
+        """Test usuario no puede actualizar rifa que no creó"""
         other_user = User.objects.create_user(
             email="other@test.com",
             password="pass123",
@@ -231,7 +230,6 @@ class RaffleAPITestCase(APITestCase):
 
     def test_list_user_raffles(self):
         """Test listar rifas de un usuario específico"""
-        # Crear rifa del usuario
         Raffle.objects.create(
             raffle_name="Rifa Usuario",
             raffle_draw_date=self.future_date,
@@ -269,7 +267,6 @@ class RaffleModelTestCase(APITestCase):
             raffle_creator_payment_method=self.payment_method,
         )
 
-        # Simular usuario admin y método de pago admin
         from user.models import User
         from userInfo.models import PaymentMethod, PaymentMethodType
 
@@ -299,7 +296,6 @@ class RaffleModelTestCase(APITestCase):
             payment_method_is_active=True,
         )
 
-        # Simular ticket vendido
         from tickets.models import Ticket
 
         user_payment = PaymentMethod.objects.create(
@@ -317,8 +313,6 @@ class RaffleModelTestCase(APITestCase):
         ticket = Ticket.objects.create(
             user=self.user, raffle=raffle, number=1, payment_method=user_payment
         )
-
-        # Ejecutar soft_delete_and_refund por el organizador (solo una vez)
         result = raffle.soft_delete_and_refund(self.user)
         raffle.refresh_from_db()
         from raffleInfo.models import StateRaffle
@@ -454,7 +448,7 @@ class RaffleModelTestCase(APITestCase):
         raffle = Raffle(
             raffle_name="Test Rifa",
             raffle_draw_date=future_date,
-            raffle_minimum_numbers_sold=150,  # Mayor que raffle_number_amount
+            raffle_minimum_numbers_sold=150, 
             raffle_number_amount=100,
             raffle_number_price=Decimal("5.00"),
             raffle_prize_amount=Decimal("500.00"),
@@ -541,6 +535,5 @@ class RaffleModelTestCase(APITestCase):
 
         can_draw, message = raffle.can_execute_draw()
 
-        # No puede sortear porque la fecha es futura
         self.assertFalse(can_draw)
         self.assertIn("mínimo", message.lower())

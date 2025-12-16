@@ -18,10 +18,8 @@ class StateViewSetTestCase(BaseApiTest):
         """
         Crear dependencias extras (Country) antes de ejecutar setUp base
         """
-        # Primero ejecutar el setUp de la clase base
         super().setUpTestData()
 
-        # Crear Country (dependencia de State)
         cls.test_country = Country.objects.create(
             country_name="Colombia for States",
             country_code="COS",
@@ -29,7 +27,6 @@ class StateViewSetTestCase(BaseApiTest):
             country_is_active=True,
         )
 
-        # Crear otro país para tests de filtrado
         cls.other_country = Country.objects.create(
             country_name="Venezuela for States",
             country_code="VES",
@@ -81,13 +78,12 @@ class StateViewSetTestCase(BaseApiTest):
 
         data = self.get_valid_create_data()
 
-        # Ajustar datos para duplicar la combinación única: state_name y state_country
+
         data["state_name"] = getattr(self.test_object, "state_name")
         data["state_country"] = (
             self.test_object.state_country.pk
-        )  # Usar el PK del país existente
-
+        )  
         response = self.client.post(self.list_url, data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("non_field_errors", response.data)  # Error de unicidad combinada
+        self.assertIn("non_field_errors", response.data) 
