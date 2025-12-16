@@ -23,7 +23,8 @@ function Home() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
-  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [showFilters, setShowFilters] = useState(false);
+  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -208,131 +209,150 @@ function Home() {
 
       {/* Filtros */}
       <div className="filters" style={{ marginBottom: '1.5rem' }}>
-        {/* Primera línea: Búsqueda y Asistente */}
-        <div style={{ 
-          display: 'flex',
-          gap: '0.75rem',
-          alignItems: 'center',
-          marginBottom: '0.75rem',
-          flexWrap: 'wrap'
-        }}>
-          {/* Búsqueda */}
+        {/* Barra de búsqueda con botón de filtros */}
+        <div className="search-container">
+          {/* Búsqueda - ocupa el espacio restante */}
           <input
             type="text"
             className="search-input"
-            placeholder="🔍 Buscar rifas..."
+            placeholder="🔍 Buscar rifas por nombre, descripción..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            style={{ 
-              flex: '1 1 300px',
-              minWidth: 0,
-              maxWidth: '100%',
-              padding: '0.875rem 1.25rem',
-              fontSize: '1rem'
-            }}
-          />
-        </div>
-
-        {/* Segunda línea: Filtros avanzados */}
-        <div style={{ 
-          display: 'flex',
-          gap: '0.5rem',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          padding: '0.75rem',
-          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-          borderRadius: '8px',
-          border: '1px solid rgba(255, 255, 255, 0.1)'
-        }}>
-
-          {/* Precio Mínimo */}
-          <input
-            type="number"
-            className="form-input"
-            placeholder="$ Mín"
-            value={minPrice}
-            onChange={e => setMinPrice(e.target.value)}
-            min="0"
-            style={{ 
-              margin: 0, 
-              padding: '0.5rem',
-              fontSize: '0.9rem',
-              flex: '0 1 100px',
-              minWidth: '90px'
-            }}
           />
 
-          {/* Precio Máximo */}
-          <input
-            type="number"
-            className="form-input"
-            placeholder="$ Máx"
-            value={maxPrice}
-            onChange={e => setMaxPrice(e.target.value)}
-            min="0"
-            style={{ 
-              margin: 0, 
-              padding: '0.5rem',
-              fontSize: '0.9rem',
-              flex: '0 1 100px',
-              minWidth: '90px'
-            }}
-          />
-
-          {/* Fecha Desde */}
-          <input
-            type="date"
-            className="form-input"
-            value={dateFrom}
-            onChange={e => setDateFrom(e.target.value)}
-            title="Sorteo desde"
-            style={{ 
-              margin: 0, 
-              padding: '0.5rem',
-              fontSize: '0.9rem',
-              flex: '0 1 140px',
-              minWidth: '130px'
-            }}
-          />
-
-          {/* Fecha Hasta */}
-          <input
-            type="date"
-            className="form-input"
-            value={dateTo}
-            onChange={e => setDateTo(e.target.value)}
-            title="Sorteo hasta"
-            style={{ 
-              margin: 0, 
-              padding: '0.5rem',
-              fontSize: '0.9rem',
-              flex: '0 1 140px',
-              minWidth: '130px'
-            }}
-          />
-
-          {/* Botón Limpiar */}
+          {/* Botón de filtros con indicador */}
           <button
-            className="btn-secondary"
-            onClick={() => {
-              setSearchTerm('');
-              setPrizeTypeFilter('all');
-              setMinPrice('');
-              setMaxPrice('');
-              setDateFrom('');
-              setDateTo('');
-            }}
-            style={{ 
-              padding: '0.5rem 1rem',
-              fontSize: '0.85rem',
-              whiteSpace: 'nowrap',
-              flex: '0 0 auto'
-            }}
+            className="btn-secondary filters-toggle-btn"
+            onClick={() => setShowFilters(true)}
           >
-            🔄 Limpiar
+            🔧 Filtros
+            {/* Indicador de filtros activos */}
+            {(minPrice || maxPrice || dateFrom || dateTo) && (
+              <span className="filters-badge">
+                {[minPrice, maxPrice, dateFrom, dateTo].filter(Boolean).length}
+              </span>
+            )}
           </button>
         </div>
       </div>
+
+      {/* Modal flotante de filtros */}
+      {showFilters && (
+        <>
+          {/* Overlay oscuro */}
+          <div 
+            className="filters-modal-overlay"
+            onClick={() => setShowFilters(false)}
+          />
+          
+          {/* Panel de filtros flotante */}
+          <div className="filters-modal-panel">
+            {/* Header del modal */}
+            <div className="filters-modal-header">
+              <h3 className="filters-modal-title">
+                🔧 Filtros Avanzados
+              </h3>
+              <button
+                className="filters-modal-close"
+                onClick={() => setShowFilters(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Contenido scrolleable */}
+            <div className="filters-modal-content">
+              <div className="filters-group-container">
+                {/* Rango de Precio */}
+                <div className="filter-group">
+                  <label className="filter-label">
+                    💰 Rango de Precio del Ticket
+                  </label>
+                  <div className="filter-range-grid">
+                    <input
+                      type="number"
+                      className="filter-input"
+                      placeholder="Mínimo"
+                      value={minPrice}
+                      onChange={e => setMinPrice(e.target.value)}
+                      min="0"
+                    />
+                    <span className="filter-range-separator">-</span>
+                    <input
+                      type="number"
+                      className="filter-input"
+                      placeholder="Máximo"
+                      value={maxPrice}
+                      onChange={e => setMaxPrice(e.target.value)}
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                {/* Rango de Fechas */}
+                <div className="filter-group">
+                  <label className="filter-label">
+                    📅 Fecha de Sorteo
+                  </label>
+                  <div className="filter-range-grid">
+                    <input
+                      type="date"
+                      className="filter-input"
+                      value={dateFrom}
+                      onChange={e => setDateFrom(e.target.value)}
+                    />
+                    <span className="filter-range-separator">→</span>
+                    <input
+                      type="date"
+                      className="filter-input"
+                      value={dateTo}
+                      onChange={e => setDateTo(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Resumen de filtros activos */}
+                {(minPrice || maxPrice || dateFrom || dateTo) && (
+                  <div className="filters-summary">
+                    <div className="filters-summary-title">
+                      ✓ Filtros activos:
+                    </div>
+                    <ul className="filters-summary-list">
+                      {minPrice && <li>Precio mínimo: ${parseFloat(minPrice).toLocaleString()}</li>}
+                      {maxPrice && <li>Precio máximo: ${parseFloat(maxPrice).toLocaleString()}</li>}
+                      {dateFrom && <li>Desde: {new Date(dateFrom).toLocaleDateString('es-ES')}</li>}
+                      {dateTo && <li>Hasta: {new Date(dateTo).toLocaleDateString('es-ES')}</li>}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer con botones */}
+            <div className="filters-modal-footer">
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  setSearchTerm('');
+                  setPrizeTypeFilter('all');
+                  setMinPrice('');
+                  setMaxPrice('');
+                  setDateFrom('');
+                  setDateTo('');
+                }}
+              >
+                🔄 Limpiar Todo
+              </button>
+              <button
+                className="btn-primary"
+                onClick={() => setShowFilters(false)}
+              >
+                ✓ Aplicar Filtros
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Grid de rifas */}
       <div className="rifa-grid">

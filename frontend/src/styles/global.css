@@ -619,6 +619,26 @@ th {
 
 /* Media Queries para Responsive */
 @media (max-width: 968px) {
+  /* Modal de filtros responsive */
+  .filters-modal-panel {
+    width: 95%;
+    max-height: 85vh;
+  }
+
+  .filter-range-grid {
+    gap: 0.5rem;
+  }
+
+  .filter-input {
+    padding: 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  .search-input {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+
   .header-content {
     padding: 1rem;
   }
@@ -919,6 +939,275 @@ th {
   align-items: center;
   justify-content: center;
   z-index: 9999;
+}
+
+/* ========================================
+           ESTILOS PARA MODAL DE FILTROS
+        ======================================== */
+
+/* Overlay del modal */
+.filters-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+  backdrop-filter: blur(4px);
+}
+
+/* Panel flotante de filtros */
+.filters-modal-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  z-index: 1001;
+  animation: slideUp 0.3s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header del modal de filtros */
+.filters-modal-header {
+  padding: 1.5rem;
+  border-bottom: 2px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #6A4C93 0%, #8B6FA8 100%);
+  color: white;
+}
+
+.filters-modal-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Botón cerrar modal */
+.filters-modal-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.filters-modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+/* Contenido del modal */
+.filters-modal-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.filters-modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.filters-modal-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.filters-modal-content::-webkit-scrollbar-thumb {
+  background: #6A4C93;
+  border-radius: 10px;
+}
+
+.filters-modal-content::-webkit-scrollbar-thumb:hover {
+  background: #5b2c6f;
+}
+
+/* Grupos de filtros */
+.filters-group-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-label {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #6A4C93;
+  margin-bottom: 0.75rem;
+}
+
+/* Grid para inputs de rango */
+.filter-range-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.filter-range-separator {
+  color: #666;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* Inputs con mejor estilo */
+.filter-input {
+  margin: 0;
+  padding: 0.875rem;
+  font-size: 1rem;
+  border-radius: 10px;
+  border: 2px solid #e0e0e0;
+  transition: border 0.2s ease;
+  width: 100%;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #6A4C93;
+}
+
+/* Resumen de filtros activos */
+.filters-summary {
+  padding: 1rem;
+  background-color: #F0EBFF;
+  border-radius: 10px;
+  border: 2px solid #6A4C93;
+  font-size: 0.9rem;
+}
+
+.filters-summary-title {
+  font-weight: 600;
+  color: #6A4C93;
+  margin-bottom: 0.5rem;
+}
+
+.filters-summary-list {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #333;
+}
+
+/* Footer del modal */
+.filters-modal-footer {
+  padding: 1.25rem 1.5rem;
+  border-top: 2px solid #f0f0f0;
+  display: flex;
+  gap: 0.75rem;
+  background-color: #fafafa;
+}
+
+.filters-modal-footer button {
+  flex: 1;
+  padding: 0.875rem;
+  font-size: 1rem;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+/* Barra de búsqueda mejorada */
+.search-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.search-input {
+  
+  padding: 1rem 1.25rem;
+  font-size: 1rem;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.95);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: #6A4C93;
+  box-shadow: 0 4px 12px rgba(106, 76, 147, 0.2);
+}
+
+/* Botón de filtros */
+.filters-toggle-btn {
+  padding: 1rem 1.75rem;
+  font-size: 1rem;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 12px;
+  position: relative;
+  font-weight: 600;
+  width: fit-content;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.filters-toggle-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Badge de filtros activos */
+.filters-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #FF6B35;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(255, 107, 53, 0.4);
+  border: 2px solid white;
+}
+
+/* Animaciones */
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translate(-50%, -45%);
+  }
+  to { 
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
 }
 
 @media (max-width: 968px) {
