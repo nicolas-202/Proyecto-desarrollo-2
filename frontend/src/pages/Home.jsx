@@ -225,7 +225,7 @@ function Home() {
             className="btn-secondary filters-toggle-btn"
             onClick={() => setShowFilters(true)}
           >
-            🔧 Filtros
+            🔧 Filtrar
             {/* Indicador de filtros activos */}
             {(minPrice || maxPrice || dateFrom || dateTo) && (
               <span className="filters-badge">
