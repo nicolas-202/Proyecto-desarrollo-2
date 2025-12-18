@@ -57,8 +57,7 @@ Desarrollar un sistema web robusto y escalable que facilite la gestión completa
 - 🔐 **Sistema de Autenticación Seguro**: Registro, login, JWT tokens, roles y permisos granulares
 - 🎫 **Gestión de Rifas**: CRUD completo de rifas con múltiples tipos de premios y estados
 - 🎟️ **Sistema de Tickets**: Compra, validación, historial y gestión automatizada
-- 💰 **Procesamiento de Pagos**: Integración con métodos de pago y sistema de reembolsos
-- 📊 **Dashboard Administrativo**: Métricas en tiempo real, estadísticas y reportes
+- 💰 **Procesamiento de Pagos**: Integración con métodos de pago y sistema de reembolsos 
 - 🌍 **Gestión de Ubicaciones**: Países, estados, ciudades con relaciones jerárquicas
 - 🧪 **Alta Cobertura de Tests**: Tests unitarios y de integración con pytest
 - 🚀 **CI/CD Completo**: GitHub Actions, pre-commit hooks, despliegue automático
